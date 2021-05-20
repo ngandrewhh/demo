@@ -1,7 +1,7 @@
 
 
 ## Please refer to this link for the demo
-https://drive.google.com/file/d/1LtNWPoGvdj1r6yHpKOr1_6VE4q3K5oK_/view?usp=sharing
+https://drive.google.com/file/d/1Uuz7_qmS2gV1zSveobis5EPtcN8jBY91/view?usp=sharing
 
 **[Python][Scala]** This project is a cloud based implementation using Apache Spark, Hadoop, Kafka deployed on a Function-as-a-service platform on AWS.
 The project aims to train itself on a database of {tweet, sentiment} records, eventually to predict a tweet and its attached sentiment.
