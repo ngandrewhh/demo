@@ -1,4 +1,4 @@
-# demo repo
+# Personal Project Demos
 Personal projects in a workplace or academic settings. 
 Dabbles in application to financial engineering, data analysis, machine learning, cloud computing.
 
