@@ -10,15 +10,18 @@ Applicable to transformation based optimization problems, such as portfolio cons
 
 #### macro_factor_trading (undergraduate independent project)
 **[R]** an implementation of a macro factor trend following model based on historical analysis of a 4-phase economy (expansion - speeding up, expansion - slowing down, contraction - speeding up, contraction - slowing down) and corresponding market return.
+
 Includes simple implementation of basket construction, use of closest semipositive-definite matrix inversion of portfolio fitting, backtesting results and live trading results.
 Experiments also included modelling the 4-phase economy as a hidden Markov model to smoothen the portfolio change between economy state change. (NOT included in src code)
 
 #### option_pricer (postgraduate coursework)
 **[Python]** an implementation of European, Asian options pricing using Black Scholes formula, and by extension, Monte Carlo simulation with spot-asset model. American option pricing is implemented using a grid based approach, and a recursion approach.
+
 Some numerical techniques including quasi-monte carlo, control variates, dynamic programming with subtree collapses are explored, but not included in the code.
 
 #### tweeter_sentiment (postgraduate coursework - no code provided, demo video available)
 **[Python][Apache]** an infrastructure built upon standard online APIs such as Tweeter on Apache-loaded AWS platform, includes a complete pipeline of data extraction from Tweeter, realtime feeding into a sentiment analysis engine using Apache Spark and Kafka, and outputting the time series of internet sentiment.
+
 Project also involves extra effort such as classification of emojis, slangs, creation of word cloud as visualization.
 
 #### natural_language_processing (undergraduate coursework)
