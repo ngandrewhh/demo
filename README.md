@@ -20,7 +20,7 @@ Experiments also included modelling the 4-phase economy as a hidden Markov model
 Some numerical techniques including quasi-monte carlo, control variates, dynamic programming with subtree collapses are explored, but not included in the code.
 
 #### tweeter_sentiment (postgraduate coursework - no code provided, demo video available)
-**[Python][Apache]** an infrastructure built upon standard online APIs such as Tweeter on Apache-loaded AWS platform, includes a complete pipeline of data extraction from Tweeter, realtime feeding into a sentiment analysis engine using Apache Spark and Kafka, and outputting the time series of internet sentiment.
+**[Python][Apache][Linux]** an infrastructure built upon standard online APIs such as Tweeter on Apache-loaded AWS platform, includes a complete pipeline of data extraction from Tweeter, realtime feeding into a sentiment analysis engine using Apache Spark and Kafka, and outputting the time series of internet sentiment.
 
 Project also involves extra effort such as classification of emojis, slangs, creation of word cloud as visualization.
 
