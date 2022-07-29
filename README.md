@@ -2,6 +2,12 @@
 Personal projects in a workplace or academic settings. 
 All source codes presented in the repo is owned by me personally, or with a sizable contribution or effort.
 
+#### [Python] rl_trading (Multiple reinforcement pair trading agents)
+<details>
+Multiple reinforcement pair trading agents implemented with test data, that allows test drives.
+Best performing agent, as expected, is the SOTA PPO2 agent implemented with stable-baselines3, achieving 1.14x return (roughly stable 6% p.a.).
+</details>
+
 #### [Python] stats.py (Methods to find exp value, pdf, cdf; demonstration of law of large number and central limit theorem)
 <details>
 A naively implemented package which includes (1) a discrete random variable class Expector, with methods to find expected value, expected value on N replays, pdf; (2) a continuous r.v. class ContinuousRandomVariable, which includes pdf, cdf, exp_val (approximated with integration); (3) some tools and methods to demonstrate Law of Large Number with visualization, Central Limit Theorem, and also some empirical way to simulate correlated variable. 
