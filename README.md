@@ -2,6 +2,11 @@
 Personal projects in a workplace or academic settings. 
 All source codes presented in the repo is owned by me personally, or with a sizable contribution or effort.
 
+#### [Python] yield_curve_sim (Naive yield curve simulation based on multivariate normal simulation)
+<details>
+Use parameters to simulate the curve movement in this rate hike environment, provide the best path way of fixed income investing based on buy-and-hold strategy.
+</details>
+
 #### [Python] rl_trading (Multiple reinforcement pair trading agents)
 <details>
 Multiple reinforcement pair trading agents implemented with test data, that allows test drives.
