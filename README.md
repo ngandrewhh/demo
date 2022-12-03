@@ -2,6 +2,13 @@
 Personal projects in a workplace or academic settings. 
 All source codes presented in the repo is owned by me personally, or with a sizable contribution or effort.
 
+#### [Python] convex_optimizer (CSI 300 convex optimizer with Pareto frontier construction)
+<details>
+A traditional convex optimizer that supports minimum variance, Pareto optimization (risk-aversion budget), maximum sharpe.
+Includes some method of naive shrinkage or covariance estimation.
+Incorporates options of long-only/short-allowed, max tracking error etc.
+</details>
+
 #### [Python] yield_curve_sim (Naive yield curve simulation based on multivariate normal simulation)
 <details>
 Use parameters to simulate the curve movement in this rate hike environment, provide the best path way of fixed income investing based on buy-and-hold strategy.
