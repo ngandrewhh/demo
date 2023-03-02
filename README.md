@@ -46,7 +46,7 @@ An implementation of European, Asian options pricing using Black Scholes formula
 Some numerical techniques including quasi-monte carlo, control variates, dynamic programming with subtree collapses are explored, but not included in the code.
 </details>
 
-#### [C++] natural_language_processing (A markov model based word generation and word verification model)
+#### [C++] n-ary_vocab_cpp (A markov model based word generation and word verification model)
 <details>
 using training data of english vocabs, the script creates N-ary word tokens (e.g. 2-nary tokens for "rice" include 'ri', 'ic', 'ce'), and assign score to such tokens. Using Djikstra's algorithm, we solve for, any supplied word, the top 5 scored non-replacing anagrams, which should be considered most 'natural'. No heuristics/pruning are applied in the script in the repo, so the script cannot handle words with 13+ characters due to the complexity.
 </details>
