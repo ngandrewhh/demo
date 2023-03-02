@@ -1,7 +1,7 @@
-use std::fs;
+use std::{fs, cmp};
 use std::io::{self, *};
 use std::any::type_name;
-use std::collections::HashSet;
+use std::collections::{HashSet, HashMap};
 
 fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
@@ -338,4 +338,265 @@ pub fn q5b() {
                             .filter(|&&x| x != ' ')
                             .collect::<String>();
     println!("q5a: {:?}", top);
+}
+
+fn q6_helper(distinct_ch: usize) -> usize {
+    let file_name = "inp_q6.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+    
+    let line = vec.iter().next().unwrap();
+    // println!("{:?}", line);
+
+    // memory
+    let mut met: HashMap<char, usize> = HashMap::new();
+    let mut passwd: String = String::new();
+    let mut incum: usize = 0;
+
+    for (ix, ch) in line.chars().enumerate() {
+        // println!("pre : ix={ix}, ch={ch}, incum={incum}, passwd={passwd}, met={met:?}");
+
+        let op_pos = met.get(&ch);
+
+        if op_pos.is_some() {
+            let pos = op_pos.unwrap();
+            incum = cmp::max((*pos).checked_add(1).unwrap(), incum);
+            let tmp_str = &line[incum..=ix];
+            // println!("assigning {incum}: {ch} to incum: {tmp_str}");
+        }
+
+        // println!("post: ix={ix}, ch={ch}, incum={incum}, passwd={passwd}, met={met:?}");
+
+        if ix.checked_sub(incum).unwrap() == (distinct_ch - 1) {
+            passwd = line[incum..=ix].to_string();
+            break;
+        }
+
+        met.insert(ch, ix);
+
+        // if ix > 100 {
+        //     break;
+        // }
+    }
+
+    incum + distinct_ch
+}
+
+pub fn q6a() {
+    let ans = q6_helper(4);
+    println!("q6a: pos={:?}", ans);
+}
+
+pub fn q6b() {
+    let ans = q6_helper(14);
+    println!("q6a: pos={:?}", ans);
+}
+
+pub fn q7() {
+    fn get_path(vec_path: &Vec<String>) -> String {
+        "/".to_string() + &vec_path.join("/")
+    }
+
+    let file_name = "inp_q7.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    // let cmd = vec.clone().into_iter().filter(|x| x.starts_with("$")).collect::<Vec<String>>();
+    let mut mem: HashMap<String, i32> = HashMap::new();
+    let mut stack: Vec<String> = Vec::new();
+    let mut it = vec.iter();
+
+    for (ix, line) in it.enumerate() {
+        let path = get_path(&stack);
+        // println!("line={line:?}, path={path:?}, mem={mem:?}");
+
+        match line {
+            line if line.starts_with("$ cd ") => {
+                let args = line.split(" ").collect::<Vec<_>>();
+                if args[2] == ".." {
+                    stack.pop();
+                } else {
+                    stack.push(args[2].to_string());
+                };
+            },
+            line if line.starts_with("$ ls") => {},
+            line if line.starts_with("dir ") => {},
+            _ => {
+                let args = line.split(" ").collect::<Vec<_>>();
+                // println!(".");
+
+                for i in 0..stack.len() {
+                    let path = get_path(&stack[0..=i].to_vec());
+                    // println!("[add] path={path}, args={args:?}");
+                    let fsize = mem.get(&path).unwrap_or(&0);
+                    mem.insert(path, fsize + args[0].parse::<i32>().unwrap());
+                }
+
+            }
+        }
+    }
+
+    let mut acc = 0;
+    for (_, value) in mem.iter() {
+        if value <= &100_000 {
+            acc += value;
+        }
+    }
+
+    println!("q7a: {:?}", acc);
+
+    let total_occupied_size = mem.get("//").unwrap();
+    let required_delete_size = 30000000 - (70000000 - total_occupied_size);
+    let mut mem_sub = mem.iter().filter(|&(_, v)| v > &required_delete_size).collect::<Vec<_>>();
+    mem_sub.sort_by_key(|&(_, v)| v);
+
+    let fs_min_size = mem_sub[0].1;
+    println!("q7b: {fs_min_size:?}");
+}
+
+pub fn q8a() {
+    let file_name = "inp_q8.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    // read data
+    let mut arr: Vec<Vec<i32>> = Vec::new();
+
+    for line in vec {
+        let arr_sub: Vec<_> = line.chars().map(|x| x.to_string().parse::<i32>().unwrap()).collect();
+        arr.push(arr_sub); 
+    }
+
+    // println!("{:?}", arr);
+    let mut ix = 0;
+    let mut acc = 0;
+    'outer: for r in 1..arr.len()-1 {
+        'inner: for c in 1..arr[r].len()-1 {
+            // println!("\nix #{ix} height {:?} at r[{r}]c[{c}]", arr[r][c]);
+            ix += 1;
+            let (mut block_left, mut block_up, mut block_right, mut block_down) = (false, false, false, false);
+
+            // left clear
+            for ll in (0..c).rev() {
+                // println!("cmp left: {:?} vs (anchor) {:?}", arr[r][ll], arr[r][c]);
+                if arr[r][ll] >= arr[r][c] {
+                    // println!("break left!");
+                    block_left = true;
+                    break;
+                }
+            }
+
+            // up clear
+            for uu in (0..r).rev() {
+                // println!("cmp up: {:?} vs (anchor) {:?}", arr[uu][c], arr[r][c]);
+                if arr[uu][c] >= arr[r][c] {
+                    // println!("break up!");
+                    block_up = true;
+                    break;
+                }
+            }
+
+            // right
+            for rr in c+1..arr[r].len() {
+                // println!("cmp right: {:?} vs (anchor) {:?}", arr[r][rr], arr[r][c]);
+                if arr[r][rr] >= arr[r][c] {
+                    // println!("break right!");
+                    block_right = true;
+                    break;
+                }
+            }
+
+            // down
+            for dd in r+1..arr.len() {
+                // println!("cmp down: {:?} vs (anchor) {:?}", arr[dd][c], arr[r][c]);
+                if arr[dd][c] >= arr[r][c] {
+                    // println!("break down!");
+                    block_down = true;
+                    break;
+                }
+            }
+
+            if !(block_left && block_up && block_right && block_down) {
+                // println!("add 1!");
+                acc += 1;
+            }
+
+            // if ix > 100 {
+            //     println!("q8: {:?}", acc + 4 * (arr.len()-1));
+            //     return;
+            // }
+        }
+    }
+
+    println!("q8a: {:?}", acc + 4 * (arr.len()-1));
+
+}
+
+pub fn q8b() {
+    let file_name = "inp_q8.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    // read data
+    let mut arr: Vec<Vec<i32>> = Vec::new();
+
+    for line in vec {
+        let arr_sub: Vec<_> = line.chars().map(|x| x.to_string().parse::<i32>().unwrap()).collect();
+        arr.push(arr_sub); 
+    }
+
+    // println!("{:?}", arr);
+    let mut ix = 0;
+    let mut acc = 0;
+    for r in 1..arr.len()-1 {
+        for c in 1..arr[r].len()-1 {
+            // println!("\nix #{ix} height {:?} at r[{r}]c[{c}]", arr[r][c]);
+            ix += 1;
+            let (mut left, mut up, mut right, mut down) = (0, 0, 0, 0);
+
+            // left clear
+            for ll in (0..c).rev() {
+                // println!("cmp left: {:?} vs (anchor) {:?}", arr[r][ll], arr[r][c]);
+                left += 1;
+                if arr[r][ll] >= arr[r][c] {
+                    break;
+                }
+            }
+
+            // up clear
+            for uu in (0..r).rev() {
+                // println!("cmp up: {:?} vs (anchor) {:?}", arr[uu][c], arr[r][c]);
+                up += 1;
+                if arr[uu][c] >= arr[r][c] {
+                    break;
+                }
+            }
+
+            // right
+            for rr in c+1..arr[r].len() {
+                // println!("cmp right: {:?} vs (anchor) {:?}", arr[r][rr], arr[r][c]);
+                right += 1;
+                if arr[r][rr] >= arr[r][c] {
+                    break;
+                }
+            }
+
+            // down
+            for dd in r+1..arr.len() {
+                // println!("cmp down: {:?} vs (anchor) {:?}", arr[dd][c], arr[r][c]);
+                down += 1;
+                if arr[dd][c] >= arr[r][c] {
+                    break;
+                }
+            }
+
+            acc = cmp::max(acc, up * left * right * down);
+        }
+    }
+
+    println!("q8b: {:?}", acc);
 }
