@@ -1,5 +1,5 @@
 # Project demo with code
-Personal projects in a workplace or academic settings. 
+Personal projects for practice, self learn, or in coursework settings. Spans Python, Rust and C++.
 All source codes presented in the repo is owned by me personally, or with a sizable contribution or effort.
 
 #### [Python] convex_optimizer (CSI 300 convex optimizer with Pareto frontier construction)
