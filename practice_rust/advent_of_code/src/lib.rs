@@ -1,7 +1,10 @@
+use core::panic;
+use std::ops::{RemAssign, Sub};
 use std::{fs, cmp};
 use std::io::{self, *};
 use std::any::type_name;
 use std::collections::{HashSet, HashMap};
+use glob::glob;
 
 fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
@@ -599,4 +602,668 @@ pub fn q8b() {
     }
 
     println!("q8b: {:?}", acc);
+}
+
+pub fn q9a() {
+    let file_name = "inp_q9.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    // read data
+    type Pos = (i32, i32);
+    let mut h_pos: Pos = (0, 0);
+    let mut t_pos: Pos = (0, 0);
+    let mut visited: HashSet<Pos> = HashSet::new();
+
+    fn l1_distance(a: Pos, b: Pos) -> Pos {
+        (a.0 - b.0, a.1 - b.1)
+        // let sq = (a.0 - b.0).pow(2) + (a.1 - b.1).pow(2);
+        // (sq as f32).sqrt()
+    }
+
+    fn add(a: Pos, b: Pos) -> Pos {
+        (a.0 + b.0, a.1 + b.1)
+    }
+
+    for (ix, line) in vec.iter().enumerate() {
+        // println!("line={line}");
+        let args = line.split(" ").collect::<Vec<_>>();
+        let dx = args[0];
+        let steps = args[1].parse::<i32>().unwrap();
+
+        for _ in 0..steps {
+            let h_pos_new = match dx {
+                "L" => Ok((h_pos.0-1, h_pos.1)),
+                "R" => Ok((h_pos.0+1, h_pos.1)),
+                "U" => Ok((h_pos.0, h_pos.1+1)),
+                "D" => Ok((h_pos.0, h_pos.1-1)),
+                _ => Err(())
+            };
+            h_pos = h_pos_new.unwrap();
+            let dist = l1_distance(h_pos, t_pos);
+
+            // println!("pre > h_pos={h_pos:?}, t_pos={t_pos:?}, distance={dist:?}");
+            
+            // static compile the corresponding moves wrt to distance
+            let t_step: Pos = match dist {
+                ( 2,  0) => ( 1,  0),
+                (-2,  0) => (-1,  0),
+                ( 0,  2) => ( 0,  1),
+                ( 0, -2) => ( 0, -1),
+                ( 1,  2) => ( 1,  1),
+                ( 1, -2) => ( 1, -1),
+                (-1,  2) => (-1,  1),
+                (-1, -2) => (-1, -1),
+                ( 2,  1) => ( 1,  1),
+                ( 2, -1) => ( 1, -1),
+                (-2,  1) => (-1,  1),
+                (-2, -1) => (-1, -1),
+
+                ( 2,  2) => ( 1,  1),
+                (-2,  2) => (-1,  1),
+                ( 2, -2) => ( 1, -1),
+                (-2, -2) => (-1, -1),
+                _ => (0, 0),
+            };
+
+            t_pos = add(t_pos, t_step);
+            visited.insert(t_pos);
+            // println!("post> h_pos={h_pos:?}, t_pos={t_pos:?}, t_step={t_step:?}");
+        }
+    }
+
+    println!("q9a: {:?}", visited.len());
+}
+
+pub fn q9b() {
+    let file_name = "inp_q9.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    // read data
+    type Pos = (i32, i32);
+    let mut v_pos: Vec<Pos> = Vec::new();
+    let mut visited: HashSet<Pos> = HashSet::new();
+
+    for i in 0..10 { v_pos.push((0, 0)); }
+
+    fn l1_distance(a: Pos, b: Pos) -> Pos {
+        (a.0 - b.0, a.1 - b.1)
+        // let sq = (a.0 - b.0).pow(2) + (a.1 - b.1).pow(2);
+        // (sq as f32).sqrt()
+    }
+
+    fn add(a: Pos, b: Pos) -> Pos {
+        (a.0 + b.0, a.1 + b.1)
+    }
+
+    for (ix, line) in vec.iter().enumerate() {
+        // println!("line={line}");
+        let args = line.split(" ").collect::<Vec<_>>();
+        let dx = args[0];
+        let steps = args[1].parse::<i32>().unwrap();
+
+        for _ in 0..steps {
+            let mut pos = v_pos[0];
+            let pos_new = match dx {
+                "L" => Ok((pos.0-1, pos.1)),
+                "R" => Ok((pos.0+1, pos.1)),
+                "U" => Ok((pos.0, pos.1+1)),
+                "D" => Ok((pos.0, pos.1-1)),
+                _ => Err(())
+            };
+            pos = pos_new.unwrap();
+            v_pos[0] = pos;
+
+            for knot in 1..v_pos.len() {
+                let mut pos = v_pos[knot];
+                let dist = l1_distance(v_pos[knot-1], v_pos[knot]);
+
+                // println!("pre > pos={v_pos:?}");
+                // static compile the corresponding moves wrt to distance
+                let t_step: Pos = match dist {
+                    ( 2,  0) => ( 1,  0),
+                    (-2,  0) => (-1,  0),
+                    ( 0,  2) => ( 0,  1),
+                    ( 0, -2) => ( 0, -1),
+                    ( 1,  2) => ( 1,  1),
+                    ( 1, -2) => ( 1, -1),
+                    (-1,  2) => (-1,  1),
+                    (-1, -2) => (-1, -1),
+                    ( 2,  1) => ( 1,  1),
+                    ( 2, -1) => ( 1, -1),
+                    (-2,  1) => (-1,  1),
+                    (-2, -1) => (-1, -1),
+
+                    ( 2,  2) => ( 1,  1),
+                    (-2,  2) => (-1,  1),
+                    ( 2, -2) => ( 1, -1),
+                    (-2, -2) => (-1, -1),
+                    _ => (0, 0),
+                };
+
+                let knot_pos = add(v_pos[knot], t_step);
+                v_pos[knot] = knot_pos;
+            }
+
+            visited.insert(v_pos[9]);
+            // println!("post> pos={v_pos:?}\n");
+        }
+
+        // if ix > 5 { break; }
+    }
+
+    println!("q9b: {:?}", visited.len());
+}
+
+pub fn q10a() {
+    fn addx(acc: &mut i32, x: i32) {
+        *acc += x;
+    }
+
+    let file_name = "inp_q10.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    let mut acc: i32 = 1;
+    let mut sig: i32 = 0;
+    let mut x: i32 = 0;
+    let mut cycle: i32 = 1;
+    let mut cmd_remaining_cycle: i32 = 0;
+
+    let mut it = vec.iter();
+    let mut line_opt = it.next();
+    let mut line: &String = &String::new();
+    let mut args: Vec<&str> = Vec::new();
+
+    while line_opt.is_some() {
+        if cmd_remaining_cycle == 0 {
+            line = line_opt.unwrap();
+            args = line.split(" ").collect::<Vec<_>>();
+
+            match args.len() {
+                1 => {
+                    x = 0;
+                    cmd_remaining_cycle = 1;
+                },
+                2 => {
+                    x = args[1].parse().unwrap();
+                    cmd_remaining_cycle = 2;
+                }
+                _ => panic!()
+            }
+        }
+
+        cycle += 1;
+        cmd_remaining_cycle -= 1;
+
+        if cmd_remaining_cycle == 0 {
+            addx(&mut acc, x);
+            line_opt = it.next();
+        }
+
+        // println!("cycle={cycle}, acc={acc}, x={x}, line={line}, rc={cmd_remaining_cycle}");
+        // if cycle > 30 { break; }
+
+        if cycle.rem_euclid(40) == 20 {
+            // println!("adding {cycle}*{acc}={:?} to sig", cycle * acc);
+            sig += cycle * acc;
+        }
+    }
+    println!("q10a: {:?}", sig);
+}
+
+pub fn q10b() {
+    fn addx(acc: &mut i32, x: i32) {
+        *acc += x;
+    }
+
+    let file_name = "inp_q10.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    let mut acc: i32 = 1;
+    let mut sig: i32 = 0;
+    let mut x: i32 = 0;
+    let mut cycle: i32 = 0;
+    let mut cmd_remaining_cycle: i32 = 0;
+
+    let mut it = vec.iter();
+    let mut line_opt = it.next();
+    let mut line: &String = &String::new();
+    let mut args: Vec<&str> = Vec::new();
+    let mut disp: String = String::new();
+
+    while line_opt.is_some() {
+        
+        cycle += 1;
+        // println!("\nbefore.. cycle={cycle}, acc={acc}, x={x}, disp=\n{disp}");
+
+        if cmd_remaining_cycle == 0 {
+            line = line_opt.unwrap();
+            args = line.split(" ").collect::<Vec<_>>();
+
+            match args.len() {
+                1 => {
+                    x = 0;
+                    cmd_remaining_cycle = 1;
+                },
+                2 => {
+                    x = args[1].parse().unwrap();
+                    cmd_remaining_cycle = 2;
+                }
+                _ => panic!()
+            }
+        }
+
+        let rem = (cycle - 1).rem_euclid(40);
+        
+        if acc+1 >= rem && rem >= acc-1 {
+            disp.push('#');
+        } else {
+            disp.push('.');
+        }
+
+        if cycle.rem_euclid(40) == 0 {
+            disp.push('\n');
+        }
+
+        cmd_remaining_cycle -= 1;
+
+        if cmd_remaining_cycle == 0 {
+            addx(&mut acc, x);
+            line_opt = it.next();
+        }
+
+        // println!("after .. cycle={cycle}, acc={acc}, x={x}, disp=\n{disp}");
+    }
+    println!("q10b: \n{:}", disp);
+}
+
+pub fn q11_helper(worry_divisor: i64, rounds: i32) -> i64 {
+    #[derive(Debug)]
+    enum MonkeyOp {
+        Add,
+        Mul,
+        AddSelf,
+        MulSelf,
+        Err
+    }
+
+    #[derive(Debug)]
+    struct Monkey {
+        id: i64,
+        items: Vec<i64>,
+        divisible: i64,
+        branch: (i32, i32),
+        op: (MonkeyOp, i64),
+        inspect_count: i64,
+        worry_divisor: i64,
+    }
+
+    impl Monkey {
+        fn build(id: i64, items: Vec<i64>, op: (MonkeyOp, i64), divisible: i64, branch_true: i32, branch_false: i32, worry_divisor: i64) -> Self {
+            Monkey { 
+                id: id, 
+                items: items, 
+                op: op, 
+                divisible: divisible, 
+                branch: (branch_false, branch_true), 
+                inspect_count: 0, 
+                worry_divisor: worry_divisor 
+            }
+        }
+
+        fn inspect(self: &mut Monkey) -> (i64, i32) {
+            let item = self.items.pop().unwrap();
+            self.inspect_count += 1;
+            let item_new: i64 = match self.op.0 {
+                MonkeyOp::Mul => item * self.op.1,
+                MonkeyOp::Add => item + self.op.1,
+                MonkeyOp::MulSelf => item * item,
+                MonkeyOp::AddSelf => item + item,
+                _ => 0
+            };
+            let item_new = item_new / self.worry_divisor;
+            if item_new.rem_euclid(self.divisible) == 0 {
+                (item_new, self.branch.1)
+            } else {
+                (item_new, self.branch.0)
+            }
+        }
+    }
+
+    let file_name = "inp_q11.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    let mut monkeys: Vec<Monkey> = Vec::new();
+    let mut it = vec.iter(); 
+
+    loop {
+        let id = it.next().unwrap().strip_prefix("Monkey ").unwrap().strip_suffix(":").unwrap().parse::<_>().unwrap();
+        let mut items = it.next().unwrap().trim().strip_prefix("Starting items: ").unwrap().split(", ").map(|x| x.parse::<i64>().unwrap()).collect::<Vec<i64>>();
+        let op: Vec<&str> = it.next().unwrap().trim().strip_prefix("Operation: new = ").unwrap().split(" ").collect();
+        
+        let monkey_op = match op[..] {
+            ["old", "*", "old"] => (MonkeyOp::MulSelf, 0),
+            ["old", "+", "old"] => (MonkeyOp::AddSelf, 0),
+            ["old", "*", _] => (MonkeyOp::Mul, op[2].parse().unwrap()),
+            ["old", "+", _] => (MonkeyOp::Add, op[2].parse().unwrap()),
+            _ => panic!()
+        };
+        
+        let divisible = it.next().unwrap().trim().strip_prefix("Test: divisible by ").unwrap().parse::<_>().unwrap();
+        let branch_true = it.next().unwrap().trim().strip_prefix("If true: throw to monkey ").unwrap().parse::<_>().unwrap();
+        let branch_false = it.next().unwrap().trim().strip_prefix("If false: throw to monkey ").unwrap().parse::<_>().unwrap();
+        let mut monkey = Monkey::build(id, items, monkey_op, divisible, branch_true, branch_false, worry_divisor);
+        
+        // println!("{:?}", monkey);
+        // let res = monkey.inspect();
+        // println!("{:?}{:?}", monkey, res);
+        monkeys.push(monkey);
+
+        let breaker = it.next();
+        if breaker.is_none() { break; }
+    }
+
+    let LCM: i64 = monkeys.iter().map(|x| x.divisible).product();
+
+    for round in 0..rounds {
+        
+        for ix in 0..monkeys.len() {
+            // println!(".. Before");
+            // for (ix, monkey) in monkeys.iter().enumerate() {
+            //     println!("Monkey {ix}: {:?}", monkey.items);
+            // }
+
+            while monkeys[ix].items.len() > 0 {
+                let (item_new, to_monkey) = monkeys[ix].inspect();
+
+                // uses the fact that all divisors in the branch condition is prime
+                let item_new = item_new.rem_euclid(LCM);
+
+                monkeys[to_monkey as usize].items.push(item_new);
+            }
+
+            // println!(".. After");
+            // for (ix, monkey) in monkeys.iter().enumerate() {
+            //     println!("Monkey {ix}: {:?}", monkey.items);
+            // }
+        }
+
+        // println!("\n== After round {} ==", round+1);
+        // for (ix, monkey) in monkeys.iter().enumerate() {
+        //     println!("Monkey {ix} inspected items {} times.", monkey.inspect_count);
+        // }
+    }
+
+    let mut inspect_counts = monkeys.iter().map(|x| x.inspect_count).collect::<Vec<_>>();
+
+    // for (ix, ic) in inspect_counts.iter().enumerate() {
+    //     println!("Monkey {ix} inspected items {} times.", ic);
+    // }
+
+    inspect_counts.sort();
+    inspect_counts.reverse();
+    inspect_counts[0] * inspect_counts[1]
+}
+
+pub fn q11a() {
+    let ans = q11_helper(3, 20);
+    println!("q11a: {}", ans);
+}
+
+pub fn q11b() {
+    let ans = q11_helper(1, 10000);
+    println!("q11b: {}", ans);
+}
+
+pub fn q12a() {
+
+    let file_name = "inp_q12.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    let mut cmap: Vec<Vec<char>> = Vec::new();
+    let mut hmap: Vec<Vec<i32>> = Vec::new();
+    let mut smap: Vec<Vec<i32>> = Vec::new();
+
+    let vis: HashSet<(usize, usize)> = HashSet::new();
+    let path: Vec<(usize, usize)> = Vec::new();   
+    let mut start: (usize, usize, i32, HashSet<_>, Vec<_>) = (0, 0, 0, vis, path);
+    let mut goal: (usize, usize) = (0, 0);
+
+    for (rx, line) in vec.iter().enumerate() {
+        let mut cmap_line: Vec<char> = Vec::new();
+        let mut hmap_line: Vec<i32> = Vec::new();
+        let mut smap_line: Vec<i32> = Vec::new();
+
+        for (cx, ch) in line.chars().enumerate() {
+            // println!("{ch}");
+            let h = match ch {
+                'S' => {
+                    start.0 = rx;
+                    start.1 = cx;
+                    0
+                }
+                'E' => {
+                    goal.0 = rx;
+                    goal.1 = cx;
+                    26
+                }
+                'a' => {
+                    ch.to_digit(36).unwrap() as i32 - 9
+                }
+                _ => ch.to_digit(36).unwrap() as i32 - 9,
+            };
+
+            cmap_line.push(ch);
+            hmap_line.push(h);
+            smap_line.push(99999999);
+        }
+
+        cmap.push(cmap_line);
+        hmap.push(hmap_line);
+        smap.push(smap_line);
+    }
+
+    let mut frontier = Vec::<(usize, usize, i32, HashSet<(usize, usize)>, Vec<(usize, usize)>)>::new();
+    let mut min_steps = 99999999;
+    frontier.push(start);
+
+    while frontier.len() > 0 {
+        let pos = frontier.pop().unwrap();
+        let mut visited = pos.3;
+        let mut path = pos.4;
+        visited.insert((pos.0, pos.1));
+        path.push((pos.0, pos.1));
+
+        // min map - if any other path arrives at this point with fewer step,
+        // then no need to expand the given path.
+        if pos.2 >= smap[pos.0][pos.1] {
+            continue;
+        } else {
+            smap[pos.0][pos.1] = pos.2;
+        }
+
+        if pos.0 == goal.0 && pos.1 == goal.1 {
+            min_steps = cmp::min(min_steps, pos.2);
+            if pos.2 == 472 {
+               println!("GOAL! Steps: {}", pos.2);
+               for &(r, c) in path.iter() {
+                    cmap[r][c] = '.';
+                    // println!("ch={} pos=({}, {})", cmap[r][c], r, c);
+               }
+
+               let final_vec = cmap.iter().map(|x| x.iter().collect::<String>());
+               for line in final_vec {
+                    println!("{}", line);
+               }
+
+            }
+        }
+        
+        if pos.0 > 0 {
+            // println!("UP");
+            if !visited.contains(&(pos.0 - 1, pos.1)) {
+                if hmap[pos.0 - 1][pos.1] - hmap[pos.0][pos.1] <= 1 {
+                    frontier.push((pos.0 - 1, pos.1, pos.2 + 1, visited.clone(), path.clone()))
+                }
+            }
+        }
+        
+        if pos.0 < hmap.len() - 1 {
+            // println!("DOWN");
+            if !visited.contains(&(pos.0 + 1, pos.1)) {
+                if hmap[pos.0 + 1][pos.1] - hmap[pos.0][pos.1] <= 1 {
+                    frontier.push((pos.0 + 1, pos.1, pos.2 + 1, visited.clone(), path.clone()))
+                }
+            }
+        }
+
+        if pos.1 > 0 {
+            // println!("LEFT");
+            if !visited.contains(&(pos.0, pos.1 - 1)) {
+                if hmap[pos.0][pos.1 - 1] - hmap[pos.0][pos.1] <= 1 {
+                    frontier.push((pos.0, pos.1 - 1, pos.2 + 1, visited.clone(), path.clone()))
+                }
+            }
+        }
+
+        if pos.1 < hmap[0].len() - 1 {
+            // println!("RIGHT");
+            if !visited.contains(&(pos.0, pos.1 + 1)) {
+                if hmap[pos.0][pos.1 + 1] - hmap[pos.0][pos.1] <= 1 {
+                    frontier.push((pos.0, pos.1 + 1, pos.2 + 1, visited.clone(), path.clone()))
+                }
+            }
+        }
+
+        // println!("pos=({}, {}), frontier={frontier:?}", pos.0, pos.1);
+        // println!("pos=({}, {})", pos.0, pos.1);
+    }
+
+    println!("q12a: {min_steps:?}",);
+
+    // for pos_a in is_a.iter() {
+    //     println!("steps to a: {}", smap[pos_a.0][pos_a.1]);
+    // }   
+}
+
+pub fn q12b() {
+
+    let file_name = "inp_q12.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    let mut cmap: Vec<Vec<char>> = Vec::new();
+    let mut hmap: Vec<Vec<i32>> = Vec::new();
+    let mut smap: Vec<Vec<i32>> = Vec::new();
+
+    let mut is_a: HashSet<(usize, usize)> = HashSet::new();
+    let vis: HashSet<(usize, usize)> = HashSet::new();
+    let path: Vec<(usize, usize)> = Vec::new();   
+    let mut start: (usize, usize, i32, HashSet<_>, Vec<_>) = (0, 0, 0, vis, path);
+    let mut goal: (usize, usize) = (0, 0);
+
+    for (rx, line) in vec.iter().enumerate() {
+        let mut cmap_line: Vec<char> = Vec::new();
+        let mut hmap_line: Vec<i32> = Vec::new();
+        let mut smap_line: Vec<i32> = Vec::new();
+
+        for (cx, ch) in line.chars().enumerate() {
+            // println!("{ch}");
+            let h = match ch {
+                'E' => {
+                    start.0 = rx;
+                    start.1 = cx;
+                    26
+                }
+                'S' | 'a' => {
+                    is_a.insert((rx, cx));
+                    1
+                }
+                _ => ch.to_digit(36).unwrap() as i32 - 9,
+            };
+
+            cmap_line.push(ch);
+            hmap_line.push(h);
+            smap_line.push(99999999);
+        }
+
+        cmap.push(cmap_line);
+        hmap.push(hmap_line);
+        smap.push(smap_line);
+    }
+
+    let mut frontier = Vec::<(usize, usize, i32, HashSet<(usize, usize)>, Vec<(usize, usize)>)>::new();
+    let mut min_steps = 99999999;
+    frontier.push(start);
+    goal = (20, 0);
+
+    while frontier.len() > 0 {
+        let pos = frontier.pop().unwrap();
+        let mut visited = pos.3;
+        let mut path = pos.4;
+        visited.insert((pos.0, pos.1));
+        path.push((pos.0, pos.1));
+
+        // min map - if any other path arrives at this point with fewer step,
+        // then no need to expand the given path.
+        if pos.2 >= smap[pos.0][pos.1] {
+            continue;
+        } else {
+            smap[pos.0][pos.1] = pos.2;
+        }
+
+        if is_a.contains(&(pos.0, pos.1)) {
+            min_steps = cmp::min(min_steps, pos.2);
+            // println!("GOAL! Steps: {}", pos.2);
+        }
+        
+        if pos.0 > 0 {
+            if !visited.contains(&(pos.0 - 1, pos.1)) {
+                if hmap[pos.0 - 1][pos.1] - hmap[pos.0][pos.1] >= -1 {
+                    frontier.push((pos.0 - 1, pos.1, pos.2 + 1, visited.clone(), path.clone()))
+                }
+            }
+        }
+        
+        if pos.0 < hmap.len() - 1 {
+            if !visited.contains(&(pos.0 + 1, pos.1)) {
+                if hmap[pos.0 + 1][pos.1] - hmap[pos.0][pos.1] >= -1 {
+                    frontier.push((pos.0 + 1, pos.1, pos.2 + 1, visited.clone(), path.clone()))
+                }
+            }
+        }
+
+        if pos.1 > 0 {
+            if !visited.contains(&(pos.0, pos.1 - 1)) {
+                if hmap[pos.0][pos.1 - 1] - hmap[pos.0][pos.1] >= -1 {
+                    frontier.push((pos.0, pos.1 - 1, pos.2 + 1, visited.clone(), path.clone()))
+                }
+            }
+        }
+
+        if pos.1 < hmap[0].len() - 1 {
+            if !visited.contains(&(pos.0, pos.1 + 1)) {
+                if hmap[pos.0][pos.1 + 1] - hmap[pos.0][pos.1] >= -1 {
+                    frontier.push((pos.0, pos.1 + 1, pos.2 + 1, visited.clone(), path.clone()))
+                }
+            }
+        }
+
+        // println!("pos=({}, {}), frontier={frontier:?}", pos.0, pos.1);
+        // println!("pos=({}, {})", pos.0, pos.1);
+    }
+
+    println!("q12b: {min_steps:?}",);
 }
