@@ -1,10 +1,10 @@
 use core::panic;
-use std::ops::{RemAssign, Sub};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{fs, cmp};
 use std::io::{self, *};
 use std::any::type_name;
 use std::collections::{HashSet, HashMap};
-use glob::glob;
 
 fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
@@ -1265,5 +1265,367 @@ pub fn q12b() {
         // println!("pos=({}, {})", pos.0, pos.1);
     }
 
-    println!("q12b: {min_steps:?}",);
+    println!("q12b: {min_steps:?}");
+}
+
+#[derive(Debug, PartialEq, PartialOrd, Eq, Ord, Clone)]
+enum Thing {
+    Vec(Vec<Thing>),
+    Number(i32),
+}
+
+fn parse_signal(signal: String) -> Vec<Thing> {
+    let mut head: Vec<Thing> = Vec::new();
+    let mut stack: Vec<Box<Vec<Thing>>> = Vec::new();
+    let mut ptr: Box<Vec<Thing>> =  Box::new(head);
+    let mut curr: Vec<Thing> = Vec::new();
+    let mut mem: String = String::new();
+
+    for ch in signal.chars() {
+        match ch {
+            '[' => {
+                stack.push(ptr);
+                curr = Vec::new();
+                ptr = Box::new(curr);
+            },
+            ']' => {
+                if mem.len() != 0 {
+                    let num = Thing::Number(mem.parse::<i32>().unwrap());
+                    (*ptr).push(num);
+                    mem = String::new();
+                }
+
+                let tmp = ptr;
+                ptr = stack.pop().unwrap();
+                (*ptr).push(Thing::Vec(*tmp));
+            },
+            ',' => {
+                if mem.len() != 0 {
+                    let num = Thing::Number(mem.parse::<i32>().unwrap());
+                    (*ptr).push(num);
+                    mem = String::new();
+                }
+            },
+            _ => {
+                mem.push(ch);
+            }
+        }
+        // println!("stack={:?}, ptr={:?}, mem={:?}", stack, ptr, mem);
+    }
+
+    *ptr
+}
+
+fn cmp_results_ori(vec_left: &Vec<Thing>, vec_right: &Vec<Thing>) -> bool {
+    // This is malformed as the base case is hard to define given it's always wrapped in a Vec.
+    // println!("\ncalling cmp_results with: \nleft={:?}, \nright={:?}", vec_left, vec_right);
+
+    let mut it_left = vec_left.iter();
+    let mut it_right = vec_right.iter();
+    let mut flag = true;
+
+    loop {
+        let (ol, or) = (it_left.next(), it_right.next());
+        
+        match (ol, or) {
+            (None, None) | (None, Some(_)) => { break; }
+            (Some(_), None) => { return false; },
+            _ => {}
+        };
+
+        let (l, r) = (ol.unwrap(), or.unwrap());
+
+        match (l, r) {
+            (Thing::Number(i), Thing::Number(j)) => { 
+                if i < j {
+                    break;
+                }
+                if i > j {
+                    flag &= false;
+                    break;
+                }
+            },
+
+            (Thing::Vec(i), Thing::Vec(j)) => { 
+                if i.len() == 0 && j.len() == 0 {
+                    continue;
+                }
+                return cmp_results_ori(i, j);
+            },
+
+            (Thing::Number(i), Thing::Vec(j)) => { 
+                let v = vec![Thing::Number(*i)];
+                return cmp_results_ori(&v, j);
+            },
+
+            (Thing::Vec(i), Thing::Number(j)) => { 
+                let v = vec![Thing::Number(*j)];
+                return cmp_results_ori(i, &v);
+            },
+        }
+    }
+
+    return flag;
+}
+
+fn cmp_results(l: &Thing, r: &Thing) -> i32 {
+    // println!("\ncalling cmp_results with: \nleft={:?}, \nright={:?}", vec_left, vec_right);
+
+    let mut flag = true;
+
+    match (l, r) {
+        (Thing::Number(i), Thing::Number(j)) => { 
+            // println!("> Case: Num Num");
+            return i - j
+        },
+
+        (Thing::Vec(i), Thing::Vec(j)) => { 
+            // println!("> Case: Vec Vec");
+            let it = i.iter().zip(j);
+            for (x, y) in it {
+                let cmp_res = cmp_results(x, y);
+                if cmp_res != 0 { 
+                    return cmp_res 
+                };
+            }
+            return i.len() as i32 - j.len() as i32;
+        },
+
+        (Thing::Number(i), Thing::Vec(j)) => { 
+            // println!("> Case: Num Vec");
+            let v = Thing::Vec(vec![Thing::Number(*i)]);
+            return cmp_results(&v, r);
+        },
+
+        (Thing::Vec(i), Thing::Number(j)) => { 
+            // println!("> Case: Vec Num");
+            let v = Thing::Vec(vec![Thing::Number(*j)]);
+            return cmp_results(l, &v);
+        },
+    }
+}
+
+pub fn q13a() {
+
+    let file_name = "inp_q13.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    let mut pairs: Vec<(String, String)> = Vec::new();
+    let mut it = vec.iter();
+    
+    loop {
+        let left = it.next().unwrap();
+        let right = it.next().unwrap();
+        pairs.push((left.to_string(), right.to_string()));
+
+        let br = it.next();
+
+        if br.is_none() {
+            break;
+        }
+    }
+
+    let mut vec_ans: Vec<usize> = Vec::new();
+
+    for (ix, (left, right)) in pairs.iter().enumerate() {
+        // println!("\npair #{}", ix+1);
+        // println!("left={left:?}");
+        // println!("right={right:?}");
+        let parsed_left = &parse_signal(left.to_string())[0];
+        let parsed_right = &parse_signal(right.to_string())[0];
+
+        match cmp_results(&parsed_left, &parsed_right) {
+            i if i < 0 => { 
+                // println!("true"); 
+                vec_ans.push(ix+1); 
+            }
+            _ => { 
+                // println!("false"); 
+            }
+        }
+    }
+
+    println!("q13a: {}", vec_ans.iter().sum::<usize>());
+}
+
+
+pub fn q13b() {
+    // this is too long.
+    let file_name = "inp_q13.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    let mut it = vec.iter();
+    let mut merge: Vec<Vec<Thing>> = Vec::new();
+    
+    // data preparation and add encoder/decoder
+    loop {
+        let left = it.next().unwrap();
+        let right = it.next().unwrap();
+        let parsed_left = parse_signal(left.to_string());
+        let parsed_right = parse_signal(right.to_string());
+        let thing_left = &parsed_left[0];
+        let thing_right = &parsed_right[0];
+
+        match cmp_results(&thing_left, &thing_right) {
+            i if i < 0 => {
+                let mut v = Vec::new();
+                v.push(thing_left.clone());
+                v.push(thing_right.clone());
+                merge.push(v);
+            },
+            i if i > 0 => {
+                let mut v = Vec::new();
+                v.push(thing_right.clone());
+                v.push(thing_left.clone());
+                merge.push(v);
+            },
+            _ => { panic!(); }
+        }
+
+        let br = it.next();
+
+        if br.is_none() {
+            break;
+        }
+    }
+
+    let two = parse_signal("[[2]]".to_string());
+    let six = parse_signal("[[6]]".to_string());
+    let thing_two = &two[0];
+    let thing_six = &six[0];
+    let mut v = Vec::new();
+    v.push(thing_two.clone());
+    v.push(thing_six.clone());
+    merge.push(v);
+
+    // merge sort
+    fn merge_sort(mut left: Vec<Thing>, mut right: Vec<Thing>) -> Vec<Thing> {
+        let mut out: Vec<Thing> = Vec::new();
+        left.reverse();
+        right.reverse();
+
+        loop {
+            // println!(">> inner, out={out:?}");
+            // println!(">> inner, left={left:?}");
+            // println!(">> inner, right={right:?}\n");
+            let left_ = left.pop();
+            let right_ = right.pop();
+
+            match (left_, right_) {
+                (Some(l), Some(r)) => {
+                    if cmp_results(&l, &r) < 0 {
+                        out.push(l);
+                        right.push(r);
+                    } else {
+                        out.push(r);
+                        left.push(l);
+                    }
+                },
+                (Some(l), None) => {
+                    out.push(l);
+                },
+                (None, Some(r)) => {
+                    out.push(r);
+                },
+                (None, None) => {
+                    break;
+                },
+            }
+        }
+
+        out
+    }
+
+    let mut acc = 1;
+
+    // doing the merge sort by looping until there's only 1 element left (i.e. all item merged).
+    while merge.len() > 1 {
+        let mut merge_tmp = Vec::new();
+
+        loop {
+            let left = merge.pop();
+            let right = merge.pop();
+
+            // println!("left={left:?}");
+            // println!("right={right:?}");
+
+            match (left, right) {
+                (Some(l), Some(r)) => {
+                    let out = merge_sort(l, r);
+                    // println!(">> merge sort, out={out:?}");
+                    merge_tmp.push(out);
+                },
+                (Some(l), None) => {
+                    merge_tmp.push(l);
+                },
+                (None, Some(r)) => {
+                    merge_tmp.push(r);
+                },
+                (None, None) => {
+                    break;
+                },
+            }
+
+            // println!(">> merge result, tmp={merge_tmp:?}\n");
+        }
+
+        merge.extend(merge_tmp);
+    }   
+
+    for (ix, line) in merge[0].iter().enumerate() {
+        if line == thing_two 
+        || line == thing_six
+        {
+            // println!("ix={}, line={line:?}", ix+1);    
+            acc *= ix + 1;
+        }
+    }
+
+    println!("q13b: {}", acc);
+}
+
+
+pub fn q13b_no_sort() {
+
+    let file_name = "inp_q13.txt";
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+
+    type Signal = Vec<Thing>;
+    let mut it = vec.iter();
+    let mut merge: Vec<Vec<Signal>> = Vec::new();
+    
+    // data preparation and add encoder/decoder
+    let two = &parse_signal("[[2]]".to_string())[0];
+    let six = &parse_signal("[[6]]".to_string())[0];
+    let mut lt_two = 0;
+    let mut lt_six = 0;
+
+    loop {
+        let br = it.next();
+        if br.is_none() {
+            break;
+        }
+
+        let line = br.unwrap();
+
+        if line.len() > 0 {
+            let parsed = &parse_signal(line.to_string())[0];
+            if cmp_results(&parsed, &two) < 0
+            {
+                lt_two += 1;
+            }
+            if cmp_results(&parsed, &six) < 0
+            {
+                lt_six += 1;
+            }
+        }
+    }
+    println!("<2={lt_two}, <6={lt_six}");
+    println!("q13b: {}", (lt_two + 1) * (lt_six + 2));
 }
