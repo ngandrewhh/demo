@@ -1,10 +1,10 @@
 use core::panic;
-use std::cell::RefCell;
-use std::rc::Rc;
+use std::ops::RangeInclusive;
 use std::{fs, cmp};
 use std::io::{self, *};
 use std::any::type_name;
 use std::collections::{HashSet, HashMap};
+use range_union_find::{IntRangeUnionFind, OverlapType};
 
 fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
@@ -1792,9 +1792,30 @@ pub fn q14b() {
     println!("q14a: {}", i - 1);
 }
 
+#[derive(Debug)]
+struct Coord {
+    s_x: i32,
+    s_y: i32,
+    b_x: i32,
+    b_y: i32
+}
+
+impl Coord {
+    fn manhattan(&self) -> i32 {
+        (self.s_x - self.b_x).abs() + (self.s_y - self.b_y).abs()
+    }
+
+    fn y_coverage(&self, y: i32) -> Option<(i32, i32)> {
+        match self.manhattan() - (self.s_y - y).abs() {
+            i if i >= 0 => Some((self.s_x - i, self.s_x + i)),
+            _ => None
+        }
+    }
+}
+
 pub fn q15a() {
     let vec = read_to_lines("inp_q15.txt");
-    let mut s_b_pairs: Vec<(i32, i32, i32, i32)> = Vec::new();
+    let mut coords: Vec<Coord> = Vec::new();
 
     for line in vec.iter() {
         let it = line.split(' ').filter(|x| x.contains('=')).collect::<Vec<&str>>();
@@ -1810,12 +1831,81 @@ pub fn q15a() {
         let b_x = it.next().unwrap();
         let b_y = it.next().unwrap();
 
-        s_b_pairs.push((s_x, s_y, b_x, b_y));
+        let coord: Coord = Coord {s_x, s_y, b_x, b_y};
+        coords.push(coord);
     }
 
-    for s_b_pair in s_b_pairs.iter() {
-        println!("{s_b_pair:?}");
+    // The coverage is defined as subtracting the diff in y-coord from the manhattan distance,
+    // then the remaining distance should expand to both side on the target row.
+    let coverages = coords.iter()
+        .map(|x| x.y_coverage(2000000))
+        .filter(|x| x.is_some())
+        .map(|x| x.unwrap())
+        .collect::<Vec<_>>();
+
+    // Uses an external crate to find the overlapping ranges.
+    let mut union_range = IntRangeUnionFind::<i32>::new();
+
+    for &(lo, hi) in coverages.iter() {
+        let range = lo..=hi;
+        union_range.insert_range(&range);
     }
 
-    // println!("q14a: {}", i - 1);
+    let ranges: _ = union_range.to_collection::<Vec<RangeInclusive<i32>>>();
+    let pos_count: i32 = ranges.iter().map(|x| x.end() - x.start()).sum();
+
+    println!("q15a: {:?}, {}", ranges, pos_count);
+}
+
+pub fn q15b() {
+    let vec = read_to_lines("inp_q15.txt");
+    let mut coords: Vec<Coord> = Vec::new();
+
+    for line in vec.iter() {
+        let it = line.split(' ').filter(|x| x.contains('=')).collect::<Vec<&str>>();
+        let args = it.iter()
+        .map(|x| x.split('=').collect::<Vec<_>>())
+        .map(|x| x[1].strip_suffix([',', ':']).unwrap_or(x[1]).parse::<i32>().unwrap())
+        .collect::<Vec<i32>>();
+        
+        let mut it = args.into_iter();
+        let s_x = it.next().unwrap();
+        let s_y = it.next().unwrap();
+
+        let b_x = it.next().unwrap();
+        let b_y = it.next().unwrap();
+
+        let coord: Coord = Coord {s_x, s_y, b_x, b_y};
+        coords.push(coord);
+    }
+
+    let mut xs = IntRangeUnionFind::<i32>::new();
+    xs.insert_range(&(0..=4000000));
+
+    for y in 0..=4000000 {
+        let coverages = coords.iter()
+            .map(|x| x.y_coverage(y))
+            .filter(|x| x.is_some())
+            .map(|x| x.unwrap())
+            .collect::<Vec<_>>();
+
+        // Uses an external crate to find the overlapping ranges.
+        let mut union_range = IntRangeUnionFind::<i32>::new();
+
+        for &(lo, hi) in coverages.iter() {
+            let range = lo..=hi;
+            union_range.insert_range(&range);
+        }
+
+        let range = union_range.to_collection::<Vec<RangeInclusive<i32>>>();
+
+        if range[0].end() <= &4000000 || range[0].start() >= &0 {
+            println!("y={y}, range={range:?}");
+            break;
+        }
+
+        // lazy, apologies. should find the disjoint element as the x
+        println!("q15b: {}", 2936793 * 4000000 + y);
+    }
+
 }

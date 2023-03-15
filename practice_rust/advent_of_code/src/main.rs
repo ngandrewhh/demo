@@ -28,4 +28,5 @@ fn main() {
     // advent_of_code::q14a();
     // advent_of_code::q14b();
     advent_of_code::q15a();
+    advent_of_code::q15b();
 }
