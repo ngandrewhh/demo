@@ -10,6 +10,13 @@ fn type_of<T>(_: T) -> &'static str {
     type_name::<T>()
 }
 
+fn read_to_lines(file_name: &str) -> Vec<String> {
+    let file = fs::File::open(file_name).unwrap();
+    let lines = io::BufReader::new(file).lines(); 
+    let vec = lines.map(|x| x.unwrap()).collect::<Vec<String>>(); 
+    vec
+}
+
 pub fn q1() {
     let file_name = "inp_q1.txt";
     let file_content = fs::read_to_string(file_name).unwrap();
@@ -1589,6 +1596,7 @@ pub fn q13b() {
 }
 
 
+
 pub fn q13b_no_sort() {
 
     let file_name = "inp_q13.txt";
@@ -1628,4 +1636,186 @@ pub fn q13b_no_sort() {
     }
     println!("<2={lt_two}, <6={lt_six}");
     println!("q13b: {}", (lt_two + 1) * (lt_six + 2));
+}
+
+fn q14_helper (corner_a: &Vec<i32>, corner_b: &Vec<i32>, map: &mut Vec<Vec<char>>, offset: i32) -> i32 {
+    let mut xy_a: (i32, i32);
+    let mut xy_b: (i32, i32);
+    let xy_d: i32 = corner_a.iter().sum::<i32>() - corner_b.iter().sum::<i32>();
+
+    match xy_d {
+        i if i > 0 => {
+            xy_a = (corner_b[0], corner_b[1]);
+            xy_b = (corner_a[0], corner_a[1]);
+        },
+        i if i < 0 => {
+            xy_b = (corner_b[0], corner_b[1]);
+            xy_a = (corner_a[0], corner_a[1]);   
+        }
+        _ => { panic!() }
+    }
+
+    let xy_d = (xy_b.0 - xy_a.0, xy_b.1 - xy_a.1);
+    let mut draw_points = vec![xy_a, xy_b];
+
+    for x in 1..xy_d.0 {
+        draw_points.push((xy_a.0 + x, xy_a.1));
+    }
+
+    for y in 1..xy_d.1 {
+        draw_points.push((xy_a.0, xy_a.1 + y));
+    }
+
+    // println!("{xy_d:?}, {draw_points:?}");
+
+    for &(x, y) in draw_points.iter() {
+        let x_ = (x - offset) as usize;
+        let y_ = y as usize;
+        // println!("{x_:?}, {y_:?}");
+        map[y_][x_] = '#';
+    }
+
+    xy_b.1
+    // println!("drawn line from {corner_a:?} to {corner_b:?}");
+}
+
+pub fn q14a() {
+    let vec = read_to_lines("inp_q14.txt");
+
+    let mut maps: Vec<Vec<char>> = Vec::with_capacity(200);
+    for x in 400..600 {
+        let v: Vec<char> = vec!['.'; 200];
+        maps.push(v);
+    }
+
+    let corners_all = vec
+        .iter().map(
+            |x| x.split(" -> ").map(
+                |x| x.split(",").map(
+                    |x| x.parse::<i32>().unwrap()
+                ).collect::<Vec<i32>>())
+            .collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+
+    for corners in corners_all.iter() {
+        for corner_pairs in corners.iter().zip(corners.iter().skip(1)) {
+            q14_helper(corner_pairs.0, corner_pairs.1, &mut maps, 400);
+        }
+    }
+
+    let mut i = 0;
+    'outer: loop {
+        i += 1;
+        let mut sand = (100, 0);
+        loop {
+            if sand.1 == 199 {
+                break 'outer;
+            }
+            if &maps[sand.1 + 1][sand.0] == &'.' {
+                sand = (sand.0, sand.1 + 1);
+            } else if &maps[sand.1 + 1][sand.0 - 1] == &'.' {
+                sand = (sand.0 - 1, sand.1 + 1);
+            } else if &maps[sand.1 + 1][sand.0 + 1] == &'.' {
+                sand = (sand.0 + 1, sand.1 + 1);
+            } else {
+                maps[sand.1][sand.0] = 'o';
+                break;
+            }
+        }
+    }
+
+    for row in maps.iter() {
+        println!("{:?}", row.iter().collect::<String>());
+    }
+
+    println!("q14a: {}", i - 1);
+}
+
+pub fn q14b() {
+    let vec = read_to_lines("inp_q14.txt");
+
+    let mut maps: Vec<Vec<char>> = Vec::with_capacity(200);
+    for _ in 0..200 {
+        let v: Vec<char> = vec!['.'; 500];
+        maps.push(v);
+    }
+
+    let corners_all = vec
+        .iter().map(
+            |x| x.split(" -> ").map(
+                |x| x.split(",").map(
+                    |x| x.parse::<i32>().unwrap()
+                ).collect::<Vec<i32>>())
+            .collect::<Vec<_>>())
+        .collect::<Vec<_>>();
+
+    let mut max_known_depth = 0;
+
+    for corners in corners_all.iter() {
+        for corner_pairs in corners.iter().zip(corners.iter().skip(1)) {
+            let max_depth = q14_helper(corner_pairs.0, corner_pairs.1, &mut maps, 250);
+            max_known_depth = cmp::max(max_known_depth, max_depth)
+        }
+    }
+
+    // println!("{max_known_depth:?}");
+    q14_helper(&vec![250, max_known_depth + 2], &vec![749, max_known_depth + 2], &mut maps, 250);
+
+    let mut i = 0;
+    'outer: loop {
+        i += 1;
+        let mut sand = (250, 0);
+        loop {
+            if &maps[sand.1][sand.0] == &'o' {
+                break 'outer;
+            }
+            if sand.1 == 199 {
+                break 'outer;
+            }
+            if &maps[sand.1 + 1][sand.0] == &'.' {
+                sand = (sand.0, sand.1 + 1);
+            } else if sand.0 - 1 > 0 && &maps[sand.1 + 1][sand.0 - 1] == &'.' {
+                sand = (sand.0 - 1, sand.1 + 1);
+            } else if sand.0 + 1 < 500 && &maps[sand.1 + 1][sand.0 + 1] == &'.' {
+                sand = (sand.0 + 1, sand.1 + 1);
+            } else {
+                maps[sand.1][sand.0] = 'o';
+                break;
+            }
+        }
+    }
+
+    for row in maps.iter() {
+        println!("{:?}", row.iter().collect::<String>());
+    }
+
+    println!("q14a: {}", i - 1);
+}
+
+pub fn q15a() {
+    let vec = read_to_lines("inp_q15.txt");
+    let mut s_b_pairs: Vec<(i32, i32, i32, i32)> = Vec::new();
+
+    for line in vec.iter() {
+        let it = line.split(' ').filter(|x| x.contains('=')).collect::<Vec<&str>>();
+        let args = it.iter()
+        .map(|x| x.split('=').collect::<Vec<_>>())
+        .map(|x| x[1].strip_suffix([',', ':']).unwrap_or(x[1]).parse::<i32>().unwrap())
+        .collect::<Vec<i32>>();
+        
+        let mut it = args.into_iter();
+        let s_x = it.next().unwrap();
+        let s_y = it.next().unwrap();
+
+        let b_x = it.next().unwrap();
+        let b_y = it.next().unwrap();
+
+        s_b_pairs.push((s_x, s_y, b_x, b_y));
+    }
+
+    for s_b_pair in s_b_pairs.iter() {
+        println!("{s_b_pair:?}");
+    }
+
+    // println!("q14a: {}", i - 1);
 }

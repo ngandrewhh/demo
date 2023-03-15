@@ -1,3 +1,5 @@
+use advent_of_code::q15a;
+
 fn main() {
     // advent_of_code::q1();
     // advent_of_code::q2();
@@ -20,7 +22,10 @@ fn main() {
     // advent_of_code::q11b();
     // advent_of_code::q12a();
     // advent_of_code::q12b();
-    advent_of_code::q13a();
-    advent_of_code::q13b();
-    advent_of_code::q13b_no_sort();
+    // advent_of_code::q13a();
+    // advent_of_code::q13b();
+    // advent_of_code::q13b_no_sort();
+    // advent_of_code::q14a();
+    // advent_of_code::q14b();
+    advent_of_code::q15a();
 }
