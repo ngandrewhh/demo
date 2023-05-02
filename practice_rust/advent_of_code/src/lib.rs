@@ -1,5 +1,6 @@
 use core::{panic, time};
 use std::fmt::format;
+use std::hash::Hash;
 use std::ops::RangeInclusive;
 use std::{fs, cmp};
 use std::io::{self, *};
@@ -2357,4 +2358,242 @@ pub fn q16b() {
     }
 
     println!("q16b: {}, eval_count={}", max_relief, eval_count);
+}
+
+fn q17_renderer(highest: i32, arr: &Vec<i32>, settled: &HashSet<i32>) {
+    let mut alls: Vec<String> = vec!["+-------+".to_string()];
+    let mut line: String = String::new();
+
+    for i in 0..((highest + 7) * 9) {
+        match i {
+            i if (arr.contains(&i) | settled.contains(&i)) => { line.push_str("o"); },
+            i if (i.rem_euclid(9) == 0) => { line.push_str("|"); }
+            i if (i.rem_euclid(9) == 8) => { 
+                line.push_str("|"); 
+                alls.push(line.clone());  
+                line.clear();
+            }
+            _ => { line.push_str("."); }
+        }
+    }
+
+    alls.reverse();
+    println!("{}", alls.join("\n"));
+}
+
+pub fn q17a() {
+    let vec = read_to_lines("inp_q17.txt");
+
+    let mut lines = vec.into_iter();
+    let pattern: Vec<char> = lines.next().unwrap().chars().collect();
+
+    // println!("{:?}", pattern);
+
+    let shapes = vec![("0123", 4), ("1r012r1", 3), ("012r2r2", 3), ("0r0r0r0", 1), ("01r01", 2)];
+    let mut highest = 0;
+    let mut settled_rocks: HashSet<i32> = HashSet::new();
+    let mut history: Vec<(usize, i32)> = Vec::new();
+
+    let mut dx: HashMap<char, i32>  = HashMap::new();
+    dx.insert('>', 1);
+    dx.insert('<', -1);
+    
+    // let mut display: Vec<String> = Vec::new();
+    let mut rocks: i64 = 0;
+    let mut winds: i64 = 0;
+    
+    'outer: while rocks < 2022 {
+
+        let r_idx = rocks.rem_euclid(shapes.len() as i64) as usize;
+        let (rock, width) = shapes[r_idx].clone();
+        let rock = rock.to_string();
+
+        let arr = rock.split("r")
+            .map(|x| x.to_string().chars().collect::<Vec<_>>())
+            .map(|x| x.iter().map(|e| e.to_string().parse::<i32>().unwrap()).collect::<Vec<i32>>())
+            .collect::<Vec<Vec<i32>>>()
+            .iter().enumerate()
+            .map(|(i, x)| x.iter().map(|e| e + (i as i32) * 9).collect::<Vec<_>>())
+            .flatten()
+            .collect::<Vec<i32>>();
+
+        // set to initial position
+        let mut arr = arr.iter().map(|x| x + (highest + 3) * 9 + 3).collect::<Vec<_>>();
+
+        // println!("{arr:?}");
+        // q17_renderer(highest, &arr, &settled_rocks);
+    
+        loop {
+            // wind
+            let w_idx = winds.rem_euclid(pattern.len() as i64) as usize;
+            let mov = dx[&pattern[w_idx]];
+
+            let valid_check = arr.iter()
+                .map(|x| x + mov)
+                .map(|x| (settled_rocks.contains(&x)) | (x.rem_euclid(9) == 0) | (x.rem_euclid(9) == 8))
+                .map(|x| x as u8)
+                .sum::<u8>();
+
+            // println!("wind: [{}]{valid_check}", &pattern[w_idx]);
+
+            if valid_check == 0 {
+                arr = arr.iter().map(|x| x + mov).collect();
+            }
+
+            // q17_renderer(highest, &arr, &settled_rocks);
+            winds += 1;
+
+            // down
+            let valid_check = arr.iter()
+                .map(|x| x - 9)
+                .map(|x| (settled_rocks.contains(&x)) | (x.rem_euclid(9) == 0) | (x.rem_euclid(9) == 8) | (x < 0))
+                .map(|x| x as u8)
+                .sum::<u8>();
+
+            // println!("down: {valid_check}");
+
+            if valid_check == 0 {
+                // q17_renderer(highest, &arr, &settled_rocks);
+                arr = arr.iter().map(|x| x - 9).collect();
+            } else {
+                let highest_ori = highest.clone();
+                highest = cmp::max(arr.iter().max().unwrap().div_euclid(9) + 1, highest);
+                settled_rocks.extend(arr.clone());
+                rocks += 1;
+
+                // q17_renderer(highest, &arr, &settled_rocks);
+                history.push((r_idx.clone(), highest - highest_ori));                
+                break;
+            }
+        }
+    }
+
+    for (idx, i) in history.iter().enumerate() {
+        print!("{:?}", i);
+        if idx.rem_euclid(5) == 4 {
+            print!("\n");
+        }
+    }
+    
+    println!("q17a: {}", highest);
+}
+
+pub fn q17b() {
+    let vec = read_to_lines("inp_q17.txt");
+
+    let mut lines = vec.into_iter();
+    let pattern: Vec<char> = lines.next().unwrap().chars().collect();
+
+    // println!("{:?}", pattern);
+
+    let shapes = vec![("0123", 4), ("1r012r1", 3), ("012r2r2", 3), ("0r0r0r0", 1), ("01r01", 2)];
+    let mut highest = 0i64;
+    let mut settled_rocks: HashSet<i64> = HashSet::new();
+    let mut history: Vec<(usize, usize, i64, i64)> = Vec::new();
+
+    let mut dx: HashMap<char, i64>  = HashMap::new();
+    dx.insert('>', 1);
+    dx.insert('<', -1);
+
+    let mut hist: HashMap<(usize, usize), (i64, i64)> = HashMap::new();
+    
+    // let mut display: Vec<String> = Vec::new();
+    let mut rocks: i64 = 0;
+    let mut winds: i64 = 0;
+    
+    'outer: while rocks < 2022 {
+
+        let r_idx = rocks.rem_euclid(shapes.len() as i64) as usize;
+        let (rock, _) = shapes[r_idx].clone();
+        let rock = rock.to_string();
+
+        let arr = rock.split("r")
+            .map(|x| x.to_string().chars().collect::<Vec<_>>())
+            .map(|x| x.iter().map(|e| e.to_string().parse::<i64>().unwrap()).collect::<Vec<i64>>())
+            .collect::<Vec<Vec<i64>>>()
+            .iter().enumerate()
+            .map(|(i, x)| x.iter().map(|e| e + (i as i64) * 9).collect::<Vec<_>>())
+            .flatten()
+            .collect::<Vec<i64>>();
+
+        // set to initial position
+        let mut arr = arr.iter().map(|x| x + (highest + 3) * 9 + 3).collect::<Vec<_>>();
+
+        // println!("{arr:?}");
+        // q17_renderer(highest, &arr, &settled_rocks);
+
+        let d_height = hist.get(&(r_idx, winds.rem_euclid(pattern.len() as i64) as usize));
+        // match d_height {
+        //     Some(i) => { highest += i.0; winds += i.1; rocks += 1; continue; },
+        //     None => {}
+        // }
+
+        let w_ori = winds.clone(); //.rem_euclid(pattern.len() as i64) as usize;
+        let w_ori_usize = winds.rem_euclid(pattern.len() as i64) as usize;
+        let a_ori = arr.clone();
+    
+        loop {
+            // wind
+            let w_idx = winds.rem_euclid(pattern.len() as i64) as usize;
+            // println!("{w_idx}, {w_ori}");
+            let mov = dx[&pattern[w_idx]];
+
+            let valid_check = arr.iter()
+                .map(|x| x + mov)
+                .map(|x| (settled_rocks.contains(&x)) | (x.rem_euclid(9) == 0) | (x.rem_euclid(9) == 8))
+                .map(|x| x as u8)
+                .sum::<u8>();
+
+            // println!("wind: [{}]{valid_check}", &pattern[w_idx]);
+
+            if valid_check == 0 {
+                arr = arr.iter().map(|x| x + mov).collect();
+            }
+
+            // q17_renderer(highest, &arr, &settled_rocks);
+            winds += 1;
+
+            // down
+            let valid_check = arr.iter()
+                .map(|x| x - 9)
+                .map(|x| (settled_rocks.contains(&x)) | (x.rem_euclid(9) == 0) | (x.rem_euclid(9) == 8) | (x < 0))
+                .map(|x| x as u8)
+                .sum::<u8>();
+
+            // println!("down: {valid_check}");
+
+            if valid_check == 0 {
+                // q17_renderer(highest, &arr, &settled_rocks);
+                arr = arr.iter().map(|x| x - 9).collect();
+            } else {
+                let highest_ori = highest.clone();
+                highest = cmp::max(arr.iter().max().unwrap().div_euclid(9) + 1, highest);
+                settled_rocks.extend(arr.clone());
+                rocks += 1;
+
+                // q17_renderer(highest, &arr, &settled_rocks);
+                let d_a = arr.iter().zip(a_ori).map(|(a, b)| a - b).collect::<Vec<i64>>()[0];
+                // println!("{:?}", d_a);
+
+                history.push((r_idx.clone(), w_ori_usize.clone(), highest - highest_ori, d_a));                
+                let s = hist.insert((r_idx, w_ori_usize), (highest - highest_ori, winds - w_ori)).unwrap_or((-1, -1));
+
+                match s.0 {
+                    -1 => {},
+                    _ if (s.0 != highest - highest_ori) => { println!("difference detected: rocks: {rocks}, winds: {winds}, s: {}, new s: {}", s.0, highest - highest_ori); break 'outer; panic!()},
+                    _ => {},
+                }
+                break;
+            }
+        }
+    }
+
+    for (idx, i) in history.iter().enumerate() {
+        print!("{:?}", i);
+        if idx.rem_euclid(5) == 4 {
+            print!("\n");
+        }
+    }
+    
+    println!("q17b: {}", highest);
 }
