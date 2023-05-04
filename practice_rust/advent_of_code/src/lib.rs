@@ -2468,12 +2468,12 @@ pub fn q17a() {
         }
     }
 
-    for (idx, i) in history.iter().enumerate() {
-        print!("{:?}", i);
-        if idx.rem_euclid(5) == 4 {
-            print!("\n");
-        }
-    }
+    // for (idx, i) in history.iter().enumerate() {
+    //     print!("{:?}", i);
+    //     if idx.rem_euclid(25) == 24 {
+    //         print!("\n");
+    //     }
+    // }
     
     println!("q17a: {}", highest);
 }
@@ -2489,20 +2489,20 @@ pub fn q17b() {
     let shapes = vec![("0123", 4), ("1r012r1", 3), ("012r2r2", 3), ("0r0r0r0", 1), ("01r01", 2)];
     let mut highest = 0i64;
     let mut settled_rocks: HashSet<i64> = HashSet::new();
-    let mut history: Vec<(usize, usize, i64, i64)> = Vec::new();
+    let mut history: Vec<(usize, i64)> = Vec::new();
+    let mut history_map: HashMap<(usize, usize, i64), Vec<i64>> = HashMap::new();
 
     let mut dx: HashMap<char, i64>  = HashMap::new();
     dx.insert('>', 1);
     dx.insert('<', -1);
 
-    let mut hist: HashMap<(usize, usize), (i64, i64)> = HashMap::new();
-    
     // let mut display: Vec<String> = Vec::new();
+    let r_max: i64 = 1000000000000;
     let mut rocks: i64 = 0;
     let mut winds: i64 = 0;
+    let mut longest = (0i64, r_max);
     
-    'outer: while rocks < 2022 {
-
+    'outer: while rocks < r_max {
         let r_idx = rocks.rem_euclid(shapes.len() as i64) as usize;
         let (rock, _) = shapes[r_idx].clone();
         let rock = rock.to_string();
@@ -2522,7 +2522,7 @@ pub fn q17b() {
         // println!("{arr:?}");
         // q17_renderer(highest, &arr, &settled_rocks);
 
-        let d_height = hist.get(&(r_idx, winds.rem_euclid(pattern.len() as i64) as usize));
+        // let d_height = hist.get(&(r_idx, winds.rem_euclid(pattern.len() as i64) as usize));
         // match d_height {
         //     Some(i) => { highest += i.0; winds += i.1; rocks += 1; continue; },
         //     None => {}
@@ -2572,28 +2572,67 @@ pub fn q17b() {
                 rocks += 1;
 
                 // q17_renderer(highest, &arr, &settled_rocks);
-                let d_a = arr.iter().zip(a_ori).map(|(a, b)| a - b).collect::<Vec<i64>>()[0];
+                // let d_a = arr.iter().zip(a_ori).map(|(a, b)| a - b).collect::<Vec<i64>>()[0];
                 // println!("{:?}", d_a);
 
-                history.push((r_idx.clone(), w_ori_usize.clone(), highest - highest_ori, d_a));                
-                let s = hist.insert((r_idx, w_ori_usize), (highest - highest_ori, winds - w_ori)).unwrap_or((-1, -1));
+                // check for longest looping pattern
+                // history.push((r_idx.clone(), w_ori_usize.clone(), highest - highest_ori));
+                history.push((r_idx.clone(), highest - highest_ori));
+                
+                let key = &(r_idx, w_ori_usize, highest - highest_ori);
+                let mut entry = match history_map.get(&(r_idx, w_ori_usize, highest - highest_ori)) {
+                    Some(i) => i.to_vec(),
+                    None => Vec::new(),
+                };
+        
+                entry.push(rocks.clone());
 
-                match s.0 {
-                    -1 => {},
-                    _ if (s.0 != highest - highest_ori) => { println!("difference detected: rocks: {rocks}, winds: {winds}, s: {}, new s: {}", s.0, highest - highest_ori); break 'outer; panic!()},
-                    _ => {},
+                if entry.len() >= 3 {
+                    println!("{entry:?}");
+                    let all_equal = entry.iter().zip(entry.iter().skip(1)).zip(entry.iter().skip(2)).map(|((a, b), c)| (b - a) == (c - b)).all(|x| x);
+                    if all_equal {
+                        longest = (entry[0] - 1, entry[1] - 1);
+                        break 'outer;
+                    }
                 }
+
+                history_map.insert(*key, entry);
+                
+                // let s = hist.insert((r_idx, w_ori_usize), (highest - highest_ori, winds - w_ori)).unwrap_or((-1, -1));
+                // match s.0 {
+                //     -1 => {},
+                //     _ if (s.0 != highest - highest_ori) => { 
+                //         println!("difference detected: rocks: {rocks}, winds: {winds}, s: {}, new s: {}", s.0, highest - highest_ori); 
+                //         // break 'outer;
+                //     },
+                //     _ => {},
+                // }
+
                 break;
             }
         }
     }
-
-    for (idx, i) in history.iter().enumerate() {
-        print!("{:?}", i);
-        if idx.rem_euclid(5) == 4 {
-            print!("\n");
-        }
-    }
     
-    println!("q17b: {}", highest);
+    let init = &history[0..(longest.0 as usize)];
+    let repeater = &history[longest.0 as usize .. longest.1 as usize];
+
+    // explicitly solve
+    // let total_height = init.iter()
+    //     .chain(repeater.iter().cycle())
+    //     .take(r_max as usize)
+    //     .map(|x| x.1)
+    //     .sum::<i64>();
+    //     // .collect::<Vec<_>>();
+
+    // implicitly solve
+    let init_len = init.len() as i64;
+    let init_sum: i64 = init.iter().map(|x| x.1).sum();
+    let repeater_len = repeater.len() as i64;
+    let repeater_sum: i64 = repeater.iter().map(|x| x.1).sum();
+    let repeater_cycle = (r_max - init_len).div_euclid(repeater_len);
+    let remainder_len = (r_max - init_len).rem_euclid(repeater_len);
+    let remainder_sum: i64 = repeater.iter().take(remainder_len as usize).map(|x| x.1).sum();
+    let total_height = init_sum + repeater_cycle * repeater_sum + remainder_sum;
+
+    println!("\nq17b: {}", total_height);
 }
