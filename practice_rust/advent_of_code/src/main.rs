@@ -1,3 +1,4 @@
+mod failing;
 fn main() {
     // advent_of_code::q1();
     // advent_of_code::q2();
@@ -28,7 +29,7 @@ fn main() {
     // advent_of_code::q15a();
     // advent_of_code::q15b();
     // advent_of_code::q16a();
-    // advent_of_code::q16b();
-    advent_of_code::q17a();
-    advent_of_code::q17b();
+    advent_of_code::q16b();
+    // advent_of_code::q17a();
+    // advent_of_code::q17b();
 }
