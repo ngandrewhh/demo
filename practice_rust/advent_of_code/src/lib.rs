@@ -1595,8 +1595,6 @@ pub fn q13b() {
     println!("q13b: {}", acc);
 }
 
-
-
 pub fn q13b_no_sort() {
 
     let file_name = "inp_q13.txt";
@@ -1724,9 +1722,9 @@ pub fn q14a() {
         }
     }
 
-    for row in maps.iter() {
-        println!("{:?}", row.iter().collect::<String>());
-    }
+    // for row in maps.iter() {
+    //     println!("{:?}", row.iter().collect::<String>());
+    // }
 
     println!("q14a: {}", i - 1);
 }
@@ -1785,9 +1783,9 @@ pub fn q14b() {
         }
     }
 
-    for row in maps.iter() {
-        println!("{:?}", row.iter().collect::<String>());
-    }
+    // for row in maps.iter() {
+    //     println!("{:?}", row.iter().collect::<String>());
+    // }
 
     println!("q14a: {}", i - 1);
 }
@@ -1901,7 +1899,7 @@ pub fn q15b() {
         let range = union_range.to_collection::<Vec<RangeInclusive<i32>>>();
 
         if range[0].end() <= &4000000 || range[0].start() >= &0 {
-            println!("y={i}, range={range:?}");
+            println!("q15b: y={i}, range={range:?}");
             y = i as i64;
             break;
         }
@@ -2480,5 +2478,148 @@ pub fn q17b() {
     let remainder_sum: i64 = repeater.iter().take(remainder_len as usize).map(|x| x.1).sum();
     let total_height = init_sum + repeater_cycle * repeater_sum + remainder_sum;
 
-    println!("\nq17b: {}", total_height);
+    println!("q17b: {}", total_height);
+}
+
+fn block_to_surf(coord: &String) -> Vec<(std::ops::Range<i32>, std::ops::Range<i32>, std::ops::Range<i32>)> {
+    let v = coord.split(",").map(|e| e.parse::<i32>().unwrap()).take(3).collect_tuple();// ;.collect::<(i32, i32, i32)>();
+    let v = v.into_iter()
+        .map(|(x, y, z)| vec![
+            (x  ..x  , y  ..y+1, z  ..z+1),
+            (x+1..x+1, y  ..y+1, z  ..z+1),
+            (x  ..x+1, y  ..y  , z  ..z+1),
+            (x  ..x+1, y+1..y+1, z  ..z+1),
+            (x  ..x+1, y  ..y+1, z  ..z  ),
+            (x  ..x+1, y  ..y+1, z+1..z+1),
+        ])
+        .flatten()
+        .collect::<Vec<_>>();
+    return v;
+}
+
+pub fn q18a() {
+    let vec = read_to_lines("inp_q18.txt");
+
+    let surfaces = vec.iter().map(|e| block_to_surf(e)).flatten().collect::<Vec<_>>();
+    let surfaces = surfaces.iter().
+        filter(|x| 
+            surfaces.iter().filter(|e| x == e).count() == 1
+        )
+        .collect::<Vec<_>>();
+
+    // for surf in surfaces.iter() {
+    //     println!("{:?}", surf);
+    // }
+    println!("q18a: {}", surfaces.len());
+}
+
+pub fn q18b() {
+    // we attempt to propagate some cloud from origin to cover all blocks. given any
+    // interior blocks will not have smoke of any kind, we can use the helper from q18 to
+    // identify such connected interior blocks, and the subtract the surface value from 
+    // those interior blocks.
+
+    // we perform a set difference of (input_blocks) - (all_blocks - filled_blocks) to
+    // identify the interior blocks.
+    let vec = read_to_lines("inp_q18.txt");
+
+    let blocks = vec.iter()
+        .map(|x| x.split(",").map(|e| 
+            e.parse::<i32>().unwrap()
+        )
+            .take(3)
+            .collect_tuple()
+            .unwrap())
+        .collect::<HashSet<(i32, i32, i32)>>();
+
+    let cube_min = blocks.clone().into_iter()
+        .map(|(a, b, c)| Vec::from([a, b, c]))
+            .min().unwrap().into_iter()
+        .min().unwrap();
+
+    let cube_max = blocks.clone().into_iter()
+        .map(|(a, b, c)| Vec::from([a, b, c]))
+            .max().unwrap().into_iter()
+        .max().unwrap() + 1;
+
+    let surfaces = vec.iter().map(|e| block_to_surf(e)).flatten().collect::<Vec<_>>();
+    let surfaces = surfaces.clone().into_iter().
+        filter(|x| 
+            surfaces.iter().filter(|&e| x == e).count() == 1
+        )
+        .collect::<Vec<_>>();
+
+    let hs_surfaces: HashSet<(std::ops::Range<i32>, std::ops::Range<i32>, std::ops::Range<i32>)> = 
+        HashSet::from_iter(surfaces);
+
+    // smoke search
+    let mut agenda = vec![(cube_min - 1, cube_min - 1, cube_min - 1)];
+    let mut filled: HashSet<(i32, i32, i32)> = HashSet::new();
+    let mut filled_total: i32 = 0;
+
+    let all = (cube_min..cube_max).map(|x| (cube_min..cube_max).map(move |y| (cube_min..cube_max).map(move |z| (x, y, z))))
+        .flatten()
+        .flatten()
+        .collect::<HashSet<(i32, i32, i32)>>();
+
+    // println!("{:?}", all);
+
+    while agenda.len() > 0 {
+        let pos = agenda.pop().unwrap();
+        if filled.contains(&pos) { continue; }
+            
+        filled_total += 1;
+        // println!("filled {pos:?}");
+
+        filled.insert(pos.clone());
+        let (x, y, z) = pos;
+
+        if (x < cube_max) & !hs_surfaces.contains(&(x+1..x+1, y..y+1, z..z+1)) {
+            let p = (x.clone()+1, y.clone(), z.clone());
+            if !filled.contains(&p) & !agenda.contains(&p) { agenda.push(p); }
+        } 
+
+        if (x > cube_min) & !hs_surfaces.contains(&(x..x, y..y+1, z..z+1)) {
+            let p = (x.clone()-1, y.clone(), z.clone());
+            if !filled.contains(&p) & !agenda.contains(&p) { agenda.push(p); }
+        } 
+
+        if (y < cube_max) & !hs_surfaces.contains(&(x..x+1, y+1..y+1, z..z+1)) {
+            let p = (x.clone(), y.clone()+1, z.clone());
+            if !filled.contains(&p) & !agenda.contains(&p) { agenda.push(p); }
+        } 
+
+        if (y > cube_min) & !hs_surfaces.contains(&(x..x+1, y..y, z..z+1)) {
+            let p = (x.clone(), y.clone()-1, z.clone());
+            if !filled.contains(&p) & !agenda.contains(&p) { agenda.push(p); }
+        } 
+
+        if (z < cube_max) & !hs_surfaces.contains(&(x..x+1, y..y+1, z+1..z+1)) {
+            let p = (x.clone(), y.clone(), z.clone()+1);
+            if !filled.contains(&p) & !agenda.contains(&p) { agenda.push(p); }
+        } 
+
+        if (z > cube_min) & !hs_surfaces.contains(&(x..x+1, y..y+1, z..z)) {
+            let p = (x.clone(), y.clone(), z.clone()-1);
+            if !filled.contains(&p) & !agenda.contains(&p) { agenda.push(p); }
+        } 
+    }
+
+    let unfilled = all.difference(&filled).map(|&(a, b, c)| (a, b, c)).collect::<HashSet<_>>();
+    let diff = unfilled.difference(&blocks).map(|(a, b, c)| format!("{a},{b},{c}")).collect::<Vec<String>>();
+    // println!("blocks: {blocks:?}");
+    // println!("filled: {filled:?}");
+    // println!("unfilled: {unfilled:?}");
+    // println!("{diff:?}");
+
+    // check connected interior surfaces
+    let interior = diff.iter().map(|e| block_to_surf(e)).flatten().collect::<Vec<_>>();
+    let interior = interior.clone().into_iter().
+        filter(|x| 
+            interior.iter().filter(|&e| x == e).count() == 1
+        )
+        .collect::<Vec<_>>();
+
+    // println!("{}", interior.len());
+    println!("q18b: all={}, exterior={}", hs_surfaces.len(), hs_surfaces.len() - interior.len());
 }
