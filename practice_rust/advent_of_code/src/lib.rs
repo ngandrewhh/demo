@@ -1,9 +1,8 @@
-use std::fmt::format;
 use std::hash::Hash;
 use std::ops::RangeInclusive;
 use std::{fs, cmp};
 use std::io::{self, *};
-use std::collections::{HashSet, HashMap};
+use std::collections::{HashSet, HashMap, hash_set};
 use range_union_find::IntRangeUnionFind;
 use itertools::Itertools;
 
@@ -416,7 +415,7 @@ pub fn q7() {
     // let cmd = vec.clone().into_iter().filter(|x| x.starts_with("$")).collect::<Vec<String>>();
     let mut mem: HashMap<String, i32> = HashMap::new();
     let mut stack: Vec<String> = Vec::new();
-    let mut it = vec.iter();
+    let it = vec.iter();
 
     for (ix, line) in it.enumerate() {
         let path = get_path(&stack);
@@ -1456,7 +1455,6 @@ pub fn q13a() {
 
     println!("q13a: {}", vec_ans.iter().sum::<usize>());
 }
-
 
 pub fn q13b() {
     // this is too long.
@@ -2622,4 +2620,253 @@ pub fn q18b() {
 
     // println!("{}", interior.len());
     println!("q18b: all={}, exterior={}", hs_surfaces.len(), hs_surfaces.len() - interior.len());
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Robot {
+    OreRobot = 0,
+    ClayRobot = 1,
+    ObsidianRobot = 2,
+    GeodeRobot = 3,
+    Nothing = 4
+}
+
+impl Robot {
+    fn to_iter() -> impl Iterator<Item = (i32, Robot)> {
+        [(0, Robot::OreRobot), (1, Robot::ClayRobot), (2, Robot::ObsidianRobot), (3, Robot::GeodeRobot), (4, Robot::Nothing)].iter().copied()
+    }
+
+    fn to_rev_iter() -> impl Iterator<Item = (i32, Robot)> {
+        [(0, Robot::OreRobot), (1, Robot::ClayRobot), (2, Robot::ObsidianRobot), (3, Robot::GeodeRobot), (4, Robot::Nothing)].iter().rev().copied()
+    }
+
+    fn from_int(i: i32) -> Robot {
+        match i {
+            0 => Robot::OreRobot,
+            1 => Robot::ClayRobot,
+            2 => Robot::ObsidianRobot,
+            3 => Robot::GeodeRobot,
+            4 => Robot::Nothing,
+            _ => panic!()
+        }
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct Blueprint {
+    id:             i32,
+    ore_robot:      Vec<i32>,
+    clay_robot:     Vec<i32>,
+    obsidian_robot: Vec<i32>,
+    geode_robot:    Vec<i32>,
+    nothing:        Vec<i32>
+}
+
+impl Blueprint {
+    pub fn build(params: Vec<i32>) -> Blueprint {
+        Blueprint { 
+            id: params[0],
+            ore_robot:      vec![params[1], 0,          0           , 0  ], 
+            clay_robot:     vec![params[2], 0,          0           , 0  ], 
+            obsidian_robot: vec![params[3], params[4],  0           , 0  ], 
+            geode_robot:    vec![params[5], 0,          params[6]   , 0  ],
+            nothing:        vec![0,         0,          0,            0]
+        }
+    }
+
+    pub fn max_spending(&self) -> Vec<i32> {
+        (0..4).map(|e|
+            {
+                let v = vec![self.ore_robot[e], self.clay_robot[e], self.obsidian_robot[e], self.geode_robot[e], 0];
+                v.into_iter().max().unwrap()
+            }
+        )
+        .collect::<Vec<i32>>()
+    }
+
+    pub fn repr(&self) -> String {
+        let mut s = String::new();
+        s.push_str(self.ore_robot.iter().join(",").as_str());
+        s.push_str(self.clay_robot.iter().join(",").as_str());
+        s.push_str(self.obsidian_robot.iter().join(",").as_str());
+        s.push_str(self.geode_robot.iter().join(",").as_str());
+        s
+    }
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+struct RobotFactory {
+    blueprint_id: i32,
+    blueprint: Blueprint,
+    time: i32,
+    robots: Vec<i32>,
+    inventory: Vec<i32>,
+    pipeline: i32,
+    memory: Vec<String>
+}
+
+impl RobotFactory {
+    fn new(blueprint: Blueprint, time: i32) -> RobotFactory {
+        RobotFactory { 
+            blueprint_id: blueprint.id,
+            blueprint, 
+            time: time,
+            robots: vec![1, 0, 0, 0, 0], 
+            inventory: vec![0, 0, 0, 0],
+            pipeline: 99,
+            memory: Vec::new()
+        }
+    }
+
+    fn has_resources(&mut self, robot: Robot) -> bool {
+        let inv = &self.inventory;
+        let cst = match robot {
+            Robot::OreRobot => &self.blueprint.ore_robot,
+            Robot::ClayRobot => &self.blueprint.clay_robot,
+            Robot::ObsidianRobot => &self.blueprint.obsidian_robot,
+            Robot::GeodeRobot => &self.blueprint.geode_robot,
+            Robot::Nothing => &self.blueprint.nothing,
+        };
+        // self.memory.push(format!("\tRobotFactory::has_resources(), inventory={inv:?}, cost={cst:?}"));
+        inv.iter().zip(cst).map(|(a, b)| a >= b).all(|e| e)
+    }
+
+    fn build(&mut self, robot: Robot) {
+        let inv = &self.inventory;
+        let (idx, cst) = match robot {
+            Robot::OreRobot => (0, &self.blueprint.ore_robot),
+            Robot::ClayRobot => (1, &self.blueprint.clay_robot),
+            Robot::ObsidianRobot => (2, &self.blueprint.obsidian_robot),
+            Robot::GeodeRobot => (3, &self.blueprint.geode_robot),
+            Robot::Nothing => (4, &self.blueprint.nothing),
+        };
+
+        self.inventory = inv.into_iter().zip(cst).map(|(a, b)| a - b).collect::<Vec<i32>>();
+        self.pipeline = robot as i32;
+        // self.memory.push(format!("\tRobotFactory::build(), start building {robot:?}, inventory={:?}", self.inventory));
+    }
+
+    fn collect_resources(&mut self) {
+        self.inventory = self.inventory.iter().zip(&self.robots).map(|(a, b)| a + b).collect::<Vec<i32>>();
+        // self.memory.push(format!("\tRobotFactory::collect_resources(), robots={:?}, inventory={:?}", self.robots, self.inventory));
+    }
+
+    fn step(&mut self) {
+        self.time += 1;
+        // self.memory.push(format!("\n\tRobotFactory::step(), t={}", self.time));
+
+        if self.pipeline != 99 {
+            self.robots[self.pipeline as usize] += 1;
+            // self.memory.push(format!("\tRobotFactory::step(), finish building {:?}, robots={:?}", Robot::from_int(self.pipeline), self.robots));
+        }
+        // self.memory.push(self.repr());
+    }
+
+    /// returns time;robots;inventory as String.
+    fn repr(&self) -> String {
+        let mut s = String::with_capacity(30);
+        s.push_str(self.time.to_string().as_str());
+        s.push_str(";");
+        s.push_str(self.robots.iter().join(",").as_str());
+        s.push_str(";");
+        s.push_str(self.inventory.iter().join(",").as_str());
+        s
+    }
+}
+
+impl Hash for RobotFactory {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.repr().hash(state)
+    }
+}
+
+fn q19_helper(blueprint: &Blueprint, max_time: i32) -> i32 {
+    let mut agenda: Vec<RobotFactory> = Vec::new();
+    let mut visited: HashSet<RobotFactory> = HashSet::with_capacity(10000000);
+    let rf = RobotFactory::new(blueprint.clone(), 0);
+
+    let max_spending = rf.blueprint.max_spending();
+    let mut eval = 0i32;
+    let mut geodes = 0;
+    
+    agenda.push(rf);
+
+    while agenda.len() > 0 {
+        // eval += 1;
+        // if eval.rem_euclid(10000) == 0 {
+        //     println!("# eval={}, agenda.len()={}, max geodes={}", eval, agenda.len(), geodes);
+        // }
+
+        let mut rf = agenda.pop().unwrap();
+        
+        if visited.contains(&rf) { continue; }
+        else { visited.insert(rf.clone()); }
+
+        // loop
+        rf.step();
+
+        // time running out
+        if rf.time == max_time {
+            // println!("{}", rf.repr());
+            geodes = cmp::max(rf.inventory[3] + rf.robots[3], geodes);
+            continue;
+        }
+
+        // prune if projected is low even if aggressively building one robot per time step
+        if rf.inventory[3] + rf.robots[3] * (max_time - rf.time + 1) + cmp::max((max_time - rf.time + 1) * (max_time - rf.time) / 2, 0) < geodes {
+            // println!("pruned {}", rf.repr());
+            continue;
+        }
+
+        // try building a robot and step
+        for (ix, robot) in Robot::to_rev_iter() {
+            if rf.has_resources(robot) { 
+                let mut rf_new = rf.clone();
+                rf_new.collect_resources();     
+
+                match robot {
+                    Robot::ClayRobot | Robot::ObsidianRobot | Robot::OreRobot => {
+                        if rf.robots[ix as usize] >= max_spending[ix as usize] { continue; }
+                    },
+                    _ => {}
+                };
+
+                rf_new.build(robot); 
+                agenda.push(rf_new.clone());
+            }
+        }
+    }
+
+    return geodes;
+}
+
+pub fn q19() {
+    let vec = read_to_lines("inp_q19.txt");
+
+    let re = Regex::new(
+        r"Blueprint (\d+): Each ore robot costs (\d+) ore. Each clay robot costs (\d+) ore. Each obsidian robot costs (\d+) ore and (\d+) clay. Each geode robot costs (\d+) ore and (\d+) obsidian.")
+        .unwrap();
+
+    let blueprints = vec.iter()
+        .map(|x| re.captures(x.as_str()).unwrap())
+        .map(|c| (1..=7).map(|e| c.get(e).unwrap().as_str().parse::<i32>().unwrap()).collect::<Vec<i32>>())
+        .map(|x| Blueprint::build(x))
+        .collect::<Vec<Blueprint>>();
+
+    let mut tot_add = 0i32;
+    let mut tot_mul = 1i32;
+
+    for blueprint in blueprints {
+        let geodes_add = q19_helper(&blueprint, 24);
+        let geodes_mul = match blueprint.id {
+            i if (i <= 3) => q19_helper(&blueprint, 32),
+            _ => 1,
+        };
+
+        tot_add += blueprint.id * geodes_add;
+        tot_mul *= geodes_mul
+    }
+
+    println!("q19a: {}", tot_add);
+    println!("q19b: {}", tot_mul);
 }
