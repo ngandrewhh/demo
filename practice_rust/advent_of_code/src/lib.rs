@@ -2870,3 +2870,90 @@ pub fn q19() {
     println!("q19a: {}", tot_add);
     println!("q19b: {}", tot_mul);
 }
+
+fn q20_helper(mut vec: Vec<(usize, i64)>) -> Vec<(usize, i64)> {
+    // println!("{:?}", vec);
+    let mut i = 0;
+    let mut p = 0;
+    let modulus = (vec.len() - 1) as i64;
+
+    while i < vec.len() {
+        loop {
+            if i == vec[p].0 { break; }
+            else { p += 1 };
+        }
+
+        let d = vec.get(p).unwrap().clone();
+
+        // println!("\nbefore: d={d:?}, i={i}, p={p}, vec={vec:?}");
+        vec.remove(p);
+
+        let new_i: usize = match d.1 {
+            i if i > 0 => {
+                let new_p = (p as i64 + i).rem_euclid(modulus);
+                new_p as usize
+            }
+            i if i < 0 => {
+                let new_p = (p as i64 + i).rem_euclid(modulus);
+                new_p as usize
+            }
+            _ => p
+        };
+
+        // println!("new_i={new_i}");
+        vec.insert(new_i, d);
+        p = 0;
+        i += 1;
+    }
+
+    // let mixed = vec.clone().into_iter()
+    //     .map(|(_, e)| e)
+    //     .collect::<Vec<i64>>();
+
+    return vec;
+}
+
+pub fn q20a() {
+    let vec = read_to_lines("inp_q20.txt");
+    let vec = vec.iter()
+        .enumerate()
+        .map(|(i, e)| (i, e.parse::<i64>().unwrap()))
+        // .map(|(i, e)| (i, e * 1))
+        .collect::<Vec<(usize, i64)>>();
+
+    let mixed = q20_helper(vec.clone()).into_iter()
+        .map(|(_, e)| e)
+        .collect::<Vec<i64>>();
+
+    let zero_pos = mixed.iter().position(|&x| x == 0).unwrap();
+    let s = mixed[(zero_pos + 1000).rem_euclid(vec.len())] 
+        + mixed[(zero_pos + 2000).rem_euclid(vec.len())] 
+        + mixed[(zero_pos + 3000).rem_euclid(vec.len())];
+
+    println!("q20a: {s}");
+}
+
+pub fn q20b() {
+    let vec = read_to_lines("inp_q20.txt");
+    let mut vec = vec.iter()
+        .enumerate()
+        .map(|(i, e)| (i, e.parse::<i64>().unwrap()))
+        .map(|(i, e)| (i, e * 811589153))
+        .collect::<Vec<(usize, i64)>>();
+
+    let mut mixings = 0;
+    while mixings < 10 {
+        vec = q20_helper(vec.clone());
+        mixings += 1;
+
+        // println!("After {mixings} mixing, {:?}", vec.iter().map(|(i, e)| e).collect::<Vec<_>>());
+    }
+
+    let mixed = vec.into_iter().map(|(_, e)| e).collect::<Vec<_>>();
+    let zero_pos = mixed.iter().position(|&x| x == 0).unwrap();
+    let s = mixed[(zero_pos + 1000).rem_euclid(mixed.len())] 
+        + mixed[(zero_pos + 2000).rem_euclid(mixed.len())] 
+        + mixed[(zero_pos + 3000).rem_euclid(mixed.len())];
+
+    println!("q20b: {s}");
+}

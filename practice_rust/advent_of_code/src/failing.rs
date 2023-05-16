@@ -1,4 +1,4 @@
-
+#![allow(dead_code)]
 use std::{collections::HashMap, cmp};
 
 use advent_of_code::{read_to_lines, precompute_path, Valve};
