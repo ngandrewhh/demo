@@ -37,26 +37,16 @@ All source codes presented in the repo is owned by me personally, or with a siza
 
 #### R <macro_factor_trading> (Economy indicators based macro asset allocation, undergraduate independent project)
 <details>
-  An implementation of a macro factor trend following model based on historical analysis of a 4-phase economy (expansion - speeding up, expansion - slowing down, contraction - speeding up, contraction - slowing down) and corresponding market return.
-
-  Includes simple implementation of basket construction, use of closest semipositive-definite matrix inversion of portfolio fitting, backtesting results and live trading results.
-
-  Experiments also included modelling the 4-phase economy as a hidden Markov model to smoothen the portfolio change between economy state change. (NOT included in src code)
+  An implementation of a macro factor trend following model based on historical analysis of a 4-phase economy (expansion - speeding up, expansion - slowing down, contraction - speeding up, contraction - slowing down) and corresponding market return. Includes simple implementation of basket construction, use of closest semipositive-definite matrix inversion of portfolio fitting, backtesting results and live trading results.
 </details>
 
 #### C++ <n-ary_vocab_cpp> (A markov model based word generation and word verification model, undergraduate coursework)
 <details>
-  Using training data of english vocabs, the script creates N-ary word tokens (e.g. 2-nary tokens for "rice" include 'ri', 'ic', 'ce'), and assign score to such tokens. 
-  
-  With Djikstra's algorithm, we solve for, any supplied word, the top 5 scored non-replacing anagrams, which should be considered most 'natural'. 
-  
-  No heuristics/pruning are applied in the script in the repo, so the script cannot handle words with 13+ characters due to the complexity.
+Using training data of english vocabs, the script creates N-ary word tokens (e.g. 2-nary tokens for "rice" include 'ri', 'ic', 'ce'), and assign score to such tokens. With Djikstra's algorithm, we solve for, any supplied word, the top 5 scored non-replacing anagrams, which should be considered most 'natural'. No heuristics/pruning are applied in the script in the repo, so the script cannot handle words with 13+ characters due to the complexity.
 </details>
 
 ## Project demo (without code)
 #### (Python + Apache) <twitter_sentiment> (A cloud pipeline to analyze Tweeter sentiment, postgraduate coursework)
 <details>
-  An infrastructure built upon standard online APIs such as Twitter on Apache-loaded AWS platform, includes a complete pipeline of data extraction from Twitter, realtime feeding into a sentiment analysis engine using Apache Spark and Kafka, and outputting the time series of internet sentiment.
-
-  Project also involves extra effort such as classification of emojis, slangs, creation of word cloud as visualization.
+An infrastructure built upon standard online APIs such as Twitter on Apache-loaded AWS platform, includes a complete pipeline of data extraction from Twitter, realtime feeding into a sentiment analysis engine using Apache Spark and Kafka, and outputting the time series of internet sentiment. Project also involves extra effort such as classification of emojis, slangs, creation of word cloud as visualization.
 </details>
