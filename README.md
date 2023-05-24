@@ -7,6 +7,9 @@ All source codes presented in the repo is owned by me personally, or with a siza
 > 
 > Also included are some memory safe traversal practices, such as LinkedList implementation. Inspiration obtain from [Learn Rust With Entirely Too Many Linked Lists](https://rust-unofficial.github.io/too-many-lists/index.html).
 
+#### C++17 <order_book_cpp> (Single Stock Order Book)
+> A simple order book building demo that includes active, efficient, and safe maintenance of top 5 bid/asks. Sample data included.
+
 #### Python <convex_optimizer> (CSI 300 convex optimizer with Pareto frontier construction)
 > A traditional convex optimizer that supports minimum variance, Pareto optimization (risk-aversion budget), maximum sharpe.
 > 
@@ -38,11 +41,6 @@ All source codes presented in the repo is owned by me personally, or with a siza
 #### R <macro_factor_trading> (Economy indicators based macro asset allocation, undergraduate independent project)
 <details>
   An implementation of a macro factor trend following model based on historical analysis of a 4-phase economy (expansion - speeding up, expansion - slowing down, contraction - speeding up, contraction - slowing down) and corresponding market return. Includes simple implementation of basket construction, use of closest semipositive-definite matrix inversion of portfolio fitting, backtesting results and live trading results.
-</details>
-
-#### C++ <n-ary_vocab_cpp> (A markov model based word generation and word verification model, undergraduate coursework)
-<details>
-Using training data of english vocabs, the script creates N-ary word tokens (e.g. 2-nary tokens for "rice" include 'ri', 'ic', 'ce'), and assign score to such tokens. With Djikstra's algorithm, we solve for, any supplied word, the top 5 scored non-replacing anagrams, which should be considered most 'natural'. No heuristics/pruning are applied in the script in the repo, so the script cannot handle words with 13+ characters due to the complexity.
 </details>
 
 ## Project demo (without code)
