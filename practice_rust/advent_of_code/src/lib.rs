@@ -1,5 +1,7 @@
+use std::cell::RefCell;
 use std::hash::Hash;
 use std::ops::RangeInclusive;
+use std::rc::Rc;
 use std::{fs, cmp};
 use std::io::{self, *};
 use std::collections::{HashSet, HashMap, hash_set};
@@ -2956,4 +2958,136 @@ pub fn q20b() {
         + mixed[(zero_pos + 3000).rem_euclid(mixed.len())];
 
     println!("q20b: {s}");
+}
+
+#[derive(Debug)]
+struct ComputeGraph {
+    op: String,
+    left: String,
+    right: String,
+}
+
+impl ComputeGraphNode {
+    fn calculate(&self, map: &HashMap<String, ComputeGraphNode>) -> i64 {
+        match self {
+            ComputeGraphNode::Leaf(i) => { return *i; },
+            ComputeGraphNode::Inter(n) => {
+                let left = map.get(&n.left).unwrap();
+                let right = map.get(&n.right).unwrap();
+                let calc_left = left.calculate(map);
+                let calc_right = right.calculate(map);
+
+                match n.op.as_str() {
+                    "+" => { calc_left + calc_right },
+                    "-" => { calc_left - calc_right },
+                    "*" => { calc_left * calc_right },
+                    "/" => { calc_left / calc_right },
+                    _ => panic!()
+                }
+            }
+            ComputeGraphNode::Root(n) => {
+                let left = map.get(&n.left).unwrap();
+                let right = map.get(&n.right).unwrap();
+                let calc_left = left.calculate(map);
+                let calc_right = right.calculate(map);
+
+                calc_left - calc_right
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
+enum ComputeGraphNode {
+    Leaf(i64), Inter(ComputeGraph), Root(ComputeGraph)
+}
+
+pub fn q21a() {
+    let vec = read_to_lines("inp_q21.txt");
+    let mut map: HashMap<String, ComputeGraphNode> = HashMap::new();
+    
+    for line in vec {
+        let eles = line.split(" ").collect::<Vec<_>>();
+        if eles.len() > 2 {
+            let mut it = eles.into_iter();
+            let ori = it.next().unwrap();
+            let ori = (&ori[..ori.len()-1]).to_string();
+
+            let left = it.next().unwrap().to_string();
+            let op = it.next().unwrap().to_string();
+            let right = it.next().unwrap().to_string();
+
+            let cg = ComputeGraphNode::Inter(ComputeGraph { op: op, left: left, right: right });
+            map.insert(ori.clone(), cg);
+        
+        } else {
+            let mut it = eles.into_iter();
+            let ori = it.next().unwrap();
+            let ori = (&ori[..ori.len()-1]).to_string();
+
+            let value = it.next().unwrap().to_string().parse::<i64>().unwrap();
+
+            let cg = ComputeGraphNode::Leaf(value);
+            map.insert(ori, cg);
+        }
+    }
+
+    let sum = map.get("root").unwrap().calculate(&map);
+    println!("q21a: {:?}", sum);
+}
+
+pub fn q21b() {
+    let vec = read_to_lines("inp_q21.txt");
+    let mut map: HashMap<String, ComputeGraphNode> = HashMap::new();
+    
+    for line in vec {
+        let eles = line.split(" ").collect::<Vec<_>>();
+        if eles.len() > 2 {
+            let mut it = eles.into_iter();
+            let ori = it.next().unwrap();
+            let ori = (&ori[..ori.len()-1]).to_string();
+
+            let left = it.next().unwrap().to_string();
+            let op = it.next().unwrap().to_string();
+            let right = it.next().unwrap().to_string();
+
+            let cg: ComputeGraphNode;
+            if ori == "root" {
+                cg = ComputeGraphNode::Root(ComputeGraph { op: op, left: left, right: right });
+            } else {
+                cg = ComputeGraphNode::Inter(ComputeGraph { op: op, left: left, right: right });
+            }
+            map.insert(ori.clone(), cg);
+        
+        } else {
+            let mut it = eles.into_iter();
+            let ori = it.next().unwrap();
+            let ori = (&ori[..ori.len()-1]).to_string();
+
+            let value = it.next().unwrap().to_string().parse::<i64>().unwrap();
+
+            let cg = ComputeGraphNode::Leaf(value);
+            map.insert(ori, cg);
+        }
+    }
+
+    let mut i = 0i64;
+    map.insert("humn".to_string(), ComputeGraphNode::Leaf(i));
+
+    // newton method
+    loop {
+        let sum = map.get("root").unwrap().calculate(&map);
+
+        map.insert("humn".to_string(), ComputeGraphNode::Leaf(i + 1));
+        let sum_ = map.get("root").unwrap().calculate(&map);
+
+        i += sum / (sum - sum_);
+
+        // println!("sum={sum}, sum_={sum_}, i={i}");
+        map.insert("humn".to_string(), ComputeGraphNode::Leaf(i));  
+
+        if sum == 0 { break; }
+    }
+
+    println!("q21b: {:?}", i);
 }
