@@ -37,6 +37,7 @@ fn main() {
     // advent_of_code::q19();
     // advent_of_code::q20a();
     // advent_of_code::q20b();
-    advent_of_code::q21a();
-    advent_of_code::q21b();
+    // advent_of_code::q21a();
+    // advent_of_code::q21b();
+    advent_of_code::q22a();
 }

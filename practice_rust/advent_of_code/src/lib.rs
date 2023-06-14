@@ -1,13 +1,10 @@
-use std::cell::RefCell;
 use std::hash::Hash;
 use std::ops::RangeInclusive;
-use std::rc::Rc;
 use std::{fs, cmp};
 use std::io::{self, *};
-use std::collections::{HashSet, HashMap, hash_set};
-use range_union_find::IntRangeUnionFind;
+use std::collections::{HashSet, HashMap};
 use itertools::Itertools;
-
+use range_union_find::IntRangeUnionFind;
 use regex::Regex;
 use priority_queue::PriorityQueue;
 
@@ -1927,7 +1924,7 @@ struct Agenda {
     opened: Vec<String>,
     visited: Vec<String>,
     remaining: Vec<String>,
-    snapshots: Vec<String>
+    snapshots: Vec<String>,
 }
 
 pub fn precompute_path(start: &String, end: &String, valves: &HashMap<String, Valve>) -> i32 {
@@ -3090,4 +3087,198 @@ pub fn q21b() {
     }
 
     println!("q21b: {:?}", i);
+}
+
+#[derive(Debug, Clone)]
+struct WrappedAdjacencyList {
+    up: (usize, usize),
+    down: (usize, usize),
+    left: (usize, usize),
+    right: (usize, usize),
+}
+
+enum Direction {
+    UP, DOWN, LEFT, RIGHT
+}
+
+impl WrappedAdjacencyList {
+    fn map_neighbors(coord: (usize, usize), m: &Vec<Vec<String>>) -> Option<WrappedAdjacencyList> {
+        let (r, c) = coord;
+        if m[r][c] == " " || m[r][c] == "#" { return None; }
+
+        // right
+        let mut new_c: usize;
+        if c < (m[0].len() - 1) {
+            new_c = c + 1;
+            loop {
+                if m[r][new_c.rem_euclid(m[0].len())] == ".".to_string() { break; }
+                if m[r][new_c.rem_euclid(m[0].len())] == "#".to_string() { new_c = c; break; }
+                new_c += 1;
+            }
+        } else {
+            new_c = 0;
+            loop {
+                if m[r][new_c] == ".".to_string() { break; }
+                if m[r][new_c] == "#".to_string() { new_c = c; break; }
+                new_c += 1;
+            }
+        }
+        let right = (r, new_c.rem_euclid(m[0].len()));
+
+        // left
+        let mut new_c: usize;
+        if c > 0 {
+            new_c = c - 1 + m[0].len();
+            loop {
+                if m[r][new_c.rem_euclid(m[0].len())] == ".".to_string() { break; }
+                if m[r][new_c.rem_euclid(m[0].len())] == "#".to_string() { new_c = c; break; }
+                new_c -= 1;
+            }
+        } else {
+            new_c = m[0].len() - 1;
+            loop {
+                if m[r][new_c] == ".".to_string() { break; }
+                if m[r][new_c] == "#".to_string() { new_c = c; break; }
+                new_c -= 1;
+            }
+        }
+        let left = (r, new_c.rem_euclid(m[0].len()));
+
+        // down
+        let mut new_r: usize;
+        if r < (m.len() - 1) {
+            new_r = r + 1;
+            loop {
+                if m[new_r.rem_euclid(m.len())][c] == ".".to_string() { break; }
+                if m[new_r.rem_euclid(m.len())][c] == "#".to_string() { new_r = r; break; }
+                new_r += 1;
+            }
+        } else {
+            new_r = 0;
+            loop {
+                if m[new_r][c] == ".".to_string() { break; }
+                if m[new_r][c] == "#".to_string() { new_r = r; break; }
+                new_r += 1;
+            }
+        }
+        let down = (new_r.rem_euclid(m.len()), c);
+
+        // up
+        let mut new_r: usize;
+        if r > 0 {
+            new_r = r - 1 + m.len();
+            loop {
+                if m[new_r.rem_euclid(m.len())][c] == ".".to_string() { break; }
+                if m[new_r.rem_euclid(m.len())][c] == "#".to_string() { new_r = r; break; }
+                new_r -= 1;
+            }
+        } else {
+            new_r = m.len() - 1;
+            loop {
+                if m[new_r][c] == ".".to_string() { break; }
+                if m[new_r][c] == "#".to_string() { new_r = r; break; }
+                new_r -= 1;
+            }
+        }
+        let up = (new_r.rem_euclid(m.len()), c);
+
+        return Some(WrappedAdjacencyList { up: up, down: down, left: left, right: right });
+    }
+
+    fn get(self, direction: &Direction) -> (usize, usize) {
+        match direction {
+            Direction::DOWN => self.down,
+            Direction::LEFT => self.left,
+            Direction::RIGHT => self.right,
+            Direction::UP => self.up,
+        }
+    }
+}
+
+pub fn q22a() {
+    let mut vec = read_to_lines("inp_q22.txt");
+    let instruction = vec.pop().unwrap();
+    vec.pop();
+
+    let mut vec = vec.iter()
+        .map(|e| 
+            e.chars().map(|i| 
+                i.to_string())
+            .collect::<Vec<String>>()
+        )
+        .collect::<Vec<Vec<String>>>();
+
+    let pad_length = vec.iter().map(|e| e.len()).max().unwrap();
+    
+    for i in (0..vec.len()) {
+        vec[i].resize(pad_length, " ".to_string())
+    }
+
+    println!("{:?}", vec);
+    println!("{}", instruction);
+
+    let wals = (0..vec.len())
+        .map(|r| 
+            (0..vec[0].len()).map(move |c| (r, c))
+                .collect::<Vec<(usize, usize)>>())
+        .flatten()
+        .map(|(r, c)| ((r, c), WrappedAdjacencyList::map_neighbors((r, c), &vec)))
+        .collect::<HashMap<(usize, usize), Option<WrappedAdjacencyList>>>();
+
+    let index = vec.iter().flatten().find_position(|e| e == &".").unwrap().0;
+    let mut pos = (0 as usize, index);
+    let mut dir = Direction::RIGHT;
+
+    let re = Regex::new(r"\d+|L|R").unwrap();
+    let steps = re.find_iter(&instruction.as_str())
+        .map(|e| e.as_str())
+        .collect::<Vec<_>>();
+
+    for step in steps {
+        match step {
+            "L" => {
+                dir = match dir {
+                    Direction::DOWN => Direction::RIGHT,
+                    Direction::LEFT => Direction::DOWN,
+                    Direction::RIGHT => Direction::UP,
+                    Direction::UP => Direction::LEFT,
+                }
+            },
+            "R" => {
+                dir = match dir {
+                    Direction::DOWN => Direction::LEFT,
+                    Direction::LEFT => Direction::UP,
+                    Direction::RIGHT => Direction::DOWN,
+                    Direction::UP => Direction::RIGHT,
+                }
+            },
+            _ => {
+                let i = step.parse::<i32>().unwrap();
+                for _ in 0..i {
+                    let (r, c) = pos.clone();
+                    vec[r][c] = match dir {
+                        Direction::DOWN => "V".to_string(),
+                        Direction::LEFT => "<".to_string(),
+                        Direction::RIGHT => ">".to_string(),
+                        Direction::UP => "^".to_string(),
+                    };
+
+                    pos = wals[&pos].clone().unwrap().get(&dir);
+                }
+            },
+        }
+    }
+
+    let grid = vec.iter().map(|e| e.join("")).join("\n");
+    println!("{grid}");
+
+    let (r, c) = pos;
+    let dir_component = match dir {
+        Direction::DOWN => 1,
+        Direction::LEFT => 2,
+        Direction::RIGHT => 0,
+        Direction::UP => 3,
+    };
+
+    println!("q22a: {}", 1000 * (r + 1) + 4 * (c + 1) + dir_component);
 }
