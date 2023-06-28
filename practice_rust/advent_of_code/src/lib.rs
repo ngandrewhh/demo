@@ -3282,3 +3282,113 @@ pub fn q22a() {
 
     println!("q22a: {}", 1000 * (r + 1) + 4 * (c + 1) + dir_component);
 }
+
+/// Find the proposed position to move to for an elf.
+fn q23a_helper(arr_pos: &HashSet<(i32, i32)>, pos: (i32, i32), round: i32) -> (i32, i32) {
+    
+    let (r, c) = pos;
+    let N = &(r - 1, c);
+    let S = &(r + 1, c);
+    let E = &(r, c + 1);
+    let W = &(r, c - 1);
+
+    let NW = &(r - 1, c - 1);
+    let NE = &(r - 1, c + 1);
+    let SW = &(r + 1, c - 1);
+    let SE = &(r + 1, c + 1);
+
+    // check neighbors
+    if  !arr_pos.contains(N) && !arr_pos.contains(S) && !arr_pos.contains(W) && !arr_pos.contains(E) &&
+        !arr_pos.contains(NW) && !arr_pos.contains(NE) && !arr_pos.contains(SW) && !arr_pos.contains(SE) {
+        return pos;
+    }
+
+    /*
+        Finally, at the end of the round, the first direction the Elves considered is moved 
+        to the end of the list of directions. 
+        For example, during the second round, the Elves would try proposing 
+        a move to the south first, then west, then east, then north.
+        On the third round, the Elves would first consider west, then east, 
+        then north, then south.
+     */
+
+    // TODO: Fix
+    let mut v = Vec::new();
+    v.push((!arr_pos.contains(N) && !arr_pos.contains(NE) && !arr_pos.contains(NW), *N));
+    v.push((!arr_pos.contains(S) && !arr_pos.contains(SE) && !arr_pos.contains(SW), *S));
+    v.push((!arr_pos.contains(W) && !arr_pos.contains(NW) && !arr_pos.contains(SW), *W));
+    v.push((!arr_pos.contains(E) && !arr_pos.contains(NE) && !arr_pos.contains(SE), *E));
+
+    for (cond, pos) in v.iter().cycle().skip(((round - 1) % 4) as usize).take(4) {
+        if *cond { return *pos; }
+    }
+
+    return (r, c);
+}
+
+fn q23_print(arr_pos: &Vec<(i32, i32)>) {
+    for r in 0..14 {
+        for c in 0..14 {
+            if arr_pos.contains(&(r, c)) { print!("#"); }
+            else { print!(".") };
+        }
+        println!();
+    }
+}
+
+pub fn q23() {
+    let vec = read_to_lines("inp_q23.txt");
+
+    let pos_elves = vec.iter().enumerate()
+        .map(|(r, line)| line.chars().enumerate()
+            .filter(|(_, ch)| ch == &'#')
+            .map(|(c, _)| (r as i32, c as i32))
+            .collect::<Vec<(i32, i32)>>())
+        .flatten()
+        .collect::<Vec<(i32, i32)>>();
+
+    // println!("{:?}", pos_elves);
+    let mut curr_pos: HashSet<(i32, i32)> = HashSet::from_iter(pos_elves.into_iter());
+    let mut printed = false;
+    
+    let mut round = 1;
+    loop {
+        // println!("{}", round);
+        let mut new_pos: HashSet<(i32, i32)> = HashSet::new();
+
+        for pos in curr_pos.iter() {
+            let pos_proposed = q23a_helper(&curr_pos, *pos, round);
+
+            if !new_pos.insert(pos_proposed) {
+                new_pos.remove(&pos_proposed);
+                new_pos.insert(*pos);
+                new_pos.insert((pos_proposed.0 * 2 - pos.0, pos_proposed.1 * 2 - pos.1));
+            }
+        }
+
+        if new_pos == curr_pos || round == 10 { 
+            if !printed {
+                let (mut min_r, mut max_r, mut min_c, mut max_c) = (999, 0, 999, 0);
+    
+                for pos in new_pos.iter() {
+                    let (r, c) = pos.clone();
+                    min_r = cmp::min(r, min_r);
+                    max_r = cmp::max(r, max_r);
+                    min_c = cmp::min(c, min_c);
+                    max_c = cmp::max(c, max_c);
+                }
+            
+                println!("q23a: {}", (max_c - min_c + 1) * (max_r - min_r + 1) - curr_pos.len() as i32);
+                printed = true;
+            }
+
+            if new_pos == curr_pos { break; }   
+        }
+        
+        curr_pos = new_pos.clone();
+        round += 1;
+    }
+
+    println!("q23b: {}", round);
+}
+
