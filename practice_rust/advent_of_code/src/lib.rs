@@ -1,5 +1,7 @@
+use core::panic;
 use std::hash::Hash;
 use std::ops::RangeInclusive;
+use std::str::Chars;
 use std::{fs, cmp};
 use std::io::{self, *};
 use std::collections::{HashSet, HashMap};
@@ -3326,9 +3328,9 @@ fn q23a_helper(arr_pos: &HashSet<(i32, i32)>, pos: (i32, i32), round: i32) -> (i
     return (r, c);
 }
 
-fn q23_print(arr_pos: &Vec<(i32, i32)>) {
-    for r in 0..14 {
-        for c in 0..14 {
+fn q23_print(arr_pos: &HashSet<(i32, i32)>) {
+    for r in 0..15 {
+        for c in 0..15 {
             if arr_pos.contains(&(r, c)) { print!("#"); }
             else { print!(".") };
         }
@@ -3509,5 +3511,63 @@ pub fn q24() {
 
     time_acc += q24_search(start, goal, time_acc, &sets_blizzards, &walls);
     println!("q24b: start to goal - {:?}", time_acc);
+}
 
+fn snafu_to_decimal(snafu: String) -> i64 {
+    snafu.chars().rev().enumerate()
+        .map(|(i, e)| 5i64.pow(i as u32) * match e {
+            '=' => -2,
+            '-' => -1,
+            '0' => 0,
+            '1' => 1,
+            '2' => 2,
+            _ => panic!()
+        })
+        .sum()
+}
+
+fn decimal_to_snafu(dec: &i64) -> String {
+    let mut dec = dec.clone();
+    let mut bounds: Vec<i64> = vec![0, 2];
+    for i in 1..20 {
+        let bound = bounds[bounds.len() - 1];
+        bounds.push(2i64 * 5i64.pow(i as u32) + bound);
+    }
+
+    let mut max_pos = 0;
+    loop {
+        if 2i64 * 5i64.pow(max_pos) > dec { break; }
+        max_pos += 1;
+    }
+
+    let mut buf = Vec::new();
+    loop {
+        for num in (-2..=2).rev() {
+            if num * 5i64.pow(max_pos) + bounds[max_pos as usize] >= dec &&
+               num * 5i64.pow(max_pos) - bounds[max_pos as usize] <= dec {
+                dec -= num * 5i64.pow(max_pos);
+                max_pos -= 1;
+                buf.push(num);
+                break;
+            }
+        }
+        if max_pos == 0 { 
+            buf.push(dec);
+            let parts = buf.iter().map(|e| match e {
+                -2 => "=", -1 => "-", 0 => "0", 1 => "1", 2 => "2",
+                _ => panic!()
+            }).collect::<Vec<&str>>().join("");
+            return parts;
+        }
+    }
+}
+
+pub fn q25() {
+    let vec = read_to_lines("inp_q25.txt");
+
+    let sum: i64 = vec.into_iter()
+        .map(|e| snafu_to_decimal(e))
+        .sum();
+
+    println!("q25: {}", decimal_to_snafu(&sum));
 }
