@@ -3392,3 +3392,122 @@ pub fn q23() {
     println!("q23b: {}", round);
 }
 
+pub fn q24_step(pos_blizzards: &Vec<((i32, i32), (i32, i32))>, bounds: (i32, i32)) -> Vec<((i32, i32), (i32, i32))> {
+    let (bounds_r, bounds_c) = bounds;
+
+    pos_blizzards.iter()
+        .map(|(pos, dir)| ((pos.0 + dir.0, pos.1 + dir.1), *dir))
+        .map(|(pos, dir)| match (pos, dir) {
+            ((0, c), (-1, 0))                      => ((bounds_r - 1, c), (-1, 0)),
+            ((r, c), (1, 0)) if r == bounds_r => ((1, c), (1, 0)),
+            ((r, 0), (0, -1))                      => ((r, bounds_c - 1), (0, -1)),
+            ((r, c), (0, 1)) if c == bounds_c => ((r, 1), (0, 1)),
+            _ => (pos, dir)
+        })
+        .collect::<Vec<_>>()
+}
+
+pub fn q24_search(start: (i32, i32), goal: (i32, i32), start_time: i32, 
+                  blizz: &HashMap<i32, HashSet<(i32, i32)>>,
+                  walls: &HashSet<(i32, i32)>) -> i32 {
+
+    let dirs: [(i32, i32); 5] = [(0, 1), (0, -1), (-1, 0), (1, 0), (0, 0)];
+    let (start_r, start_c) = start;
+    let (goal_r, goal_c) = goal;
+
+    let mut min_steps = 1024;
+    let mut agenda = Vec::new();
+    let mut visited = HashSet::new();
+
+    agenda.push((start_r, start_c, 0));
+
+    while agenda.len() > 0 {
+        let top = agenda.pop().unwrap();
+        if visited.contains(&top) { continue; }
+
+        visited.insert(top);
+        let (r, c, time) = top;
+
+        if (r, c) == (goal_r, goal_c) { 
+            min_steps = cmp::min(min_steps, time); 
+            // println!("{}", min_steps);
+            continue;
+        }
+
+        if (goal_r - r) + (goal_c - c) + time > min_steps || time >= 1024 - start_time { continue; }
+
+        for dir in dirs {
+            let (new_r, new_c) = (r + dir.0, c + dir.1);
+            if !blizz.get(&(start_time + time + 1)).unwrap().contains(&(new_r, new_c)) && !walls.contains(&(new_r, new_c)) {
+                agenda.push((new_r, new_c, time + 1));
+            }
+        }
+    }
+
+    return min_steps;
+}
+
+pub fn q24() {
+    let vec = read_to_lines("inp_q24.txt");
+
+    let bounds = ((vec.len() - 1) as i32, (vec[0].len() - 1) as i32);
+    let mut pos_blizzards = vec.iter().enumerate()
+    .map(|(r, line)| line.chars().enumerate()
+        .filter(|(_, ch)| ['^', 'v', '<', '>'].contains(ch))
+        .map(|(c, ch)| ((r as i32, c as i32), match ch {
+            '^' => (-1, 0),
+            'v' => ( 1, 0),
+            '<' => (0, -1),
+            '>' => (0,  1),
+            _ => unreachable!()
+        }))
+        .collect::<Vec<((i32, i32), (i32, i32))>>())
+    .flatten()
+    .collect::<Vec<((i32, i32), (i32, i32))>>();
+    
+    // front load all blizzards configurations
+    let mut walls = (0..vec.len())
+        .map(|r| (0..vec[0].len())
+            .map(|c| (r, c))
+            .collect::<Vec<_>>())
+        .flatten()
+        .filter(|pos| match pos {
+            (0, 1) => false,
+            (r, c) if (*r == vec.len() - 1) && (*c == vec[0].len() - 2) => false,
+            (_, c) if *c == 0 || *c == vec[0].len() - 1 => true,
+            (r, _) if *r == 0 || *r == vec.len() - 1 => true,
+            _ => false
+        })
+        .map(|(a, b)| (a as i32, b as i32))
+        .collect::<HashSet<_>>();
+    walls.insert((-1, 1));
+    walls.insert((vec.len() as i32, vec[0].len() as i32 - 2));
+
+    let mut vecs_blizzards = HashMap::new();
+    let mut sets_blizzards = HashMap::new();
+
+    for i in 0..=1024 {
+        let set_blizzards = pos_blizzards.iter()
+            .map(|(pos, dir)| pos.clone())
+            .collect::<HashSet<_>>();
+
+        vecs_blizzards.insert(i, pos_blizzards);
+        sets_blizzards.insert(i, set_blizzards);
+
+        pos_blizzards = q24_step(vecs_blizzards.get(&i).unwrap(), bounds);        
+    }
+
+    let start = (0, 1);
+    let goal = (vec.len() as i32 - 1, vec[0].len() as i32 - 2);
+    let mut time_acc = 0;
+    
+    time_acc += q24_search(start, goal, time_acc, &sets_blizzards, &walls);
+    println!("q24a: {:?}", time_acc);
+
+    time_acc += q24_search(goal, start, time_acc, &sets_blizzards, &walls);
+    // println!("q24b: goal to start - {:?}", time_acc);
+
+    time_acc += q24_search(start, goal, time_acc, &sets_blizzards, &walls);
+    println!("q24b: start to goal - {:?}", time_acc);
+
+}
