@@ -3214,8 +3214,8 @@ pub fn q22a() {
         vec[i].resize(pad_length, " ".to_string())
     }
 
-    println!("{:?}", vec);
-    println!("{}", instruction);
+    // println!("{:?}", vec);
+    // println!("{}", instruction);
 
     let wals = (0..vec.len())
         .map(|r| 
