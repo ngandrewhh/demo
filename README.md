@@ -7,6 +7,9 @@ All source codes presented in the repo is owned by me personally, or with a siza
 > 
 > Also included are some memory safe traversal practices, such as LinkedList implementation. Inspiration obtain from [Learn Rust With Entirely Too Many Linked Lists](https://rust-unofficial.github.io/too-many-lists/index.html).
 
+#### Rust <collab_text_editor>
+> In Progress: An attempt to build a command line, peer-to-peer collaborative text editor through TCP.
+
 #### C++17 <order_book_cpp> (Single Stock Order Book)
 > A simple order book building demo that includes active, efficient, and safe maintenance of top 5 bid/asks. Sample data included.
 
